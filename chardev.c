@@ -18,10 +18,6 @@ MODULE_VERSION("0.1");            ///< A version number to inform users
 
 /* Global variables are declared as static, so are global within the file. */
 static int Major;
-static int Device_Open = 0;
-static char msg[BUF_LEN];
-static char *msg_Ptr;
-static int counter=0;
 
 static struct file_operations fops = {
     .write = NULL,
@@ -66,17 +62,9 @@ void cleanup_module(void){
 /********************** FILE METHODS **********/
 
 static int device_open(struct inode*inode, struct file *file){
-        printk("Device opened from pid:%ld, heppy hacking!\n",(long int)(current->pid)); 
-        //static int counter = 0;
-        if(Device_Open) return -EBUSY;
-        Device_Open++; // Something like a semaphore
+        printk("Device opened from pid:%ld, heppy hacking!\n",
+                (long int)(current->pid)); 
         
-
-        sprintf(msg,
-                "I already told you %d times Hello world!\n",
-                counter++);
-
-        msg_Ptr = msg;
         return SUCCESS;
 }
 
@@ -85,11 +73,7 @@ static int device_open(struct inode*inode, struct file *file){
 */
 static int device_release(struct inode *inode, struct file *file)
 {
-        Device_Open--;
-        /* We're now ready for our next caller */
-        /* Decrement the usage count, or else once you opened the file, you'll
-        never get get rid of the module. */
-        return 0;
+        return SUCCESS;
 }
 
 
@@ -98,7 +82,6 @@ static long device_ioctl(
     unsigned int ioctl_num,
     unsigned long ioctl_param)
 {
-    // If the ioctl is write or read/write ( the output is returned to the calling process ), the ioctl call returns the output of this function.
     
    struct pt_regs *pt;
 
