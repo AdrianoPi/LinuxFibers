@@ -1,1 +1,1 @@
-cmd_/home/aosv/aosv/module/build/main.ko := ld -r -m elf_i386 -T ./scripts/module-common.lds  --build-id  -o /home/aosv/aosv/module/build/main.ko /home/aosv/aosv/module/build/main.o /home/aosv/aosv/module/build/main.mod.o ;  true
+cmd_/home/aosv/LinuxFibers/module/build/main.ko := ld -r -m elf_i386 -T ./scripts/module-common.lds  --build-id  -o /home/aosv/LinuxFibers/module/build/main.ko /home/aosv/LinuxFibers/module/build/main.o /home/aosv/LinuxFibers/module/build/main.mod.o ;  true

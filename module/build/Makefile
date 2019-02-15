@@ -1,5 +1,5 @@
 obj-m += main.o
-main-y := ../src/main.o ../src/driver.o
+main-y := ../src/main.o ../src/driver.o ../src/fibers.o
 
 ccflags-y := -I$(src)/../include
 

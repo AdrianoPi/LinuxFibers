@@ -11,7 +11,7 @@ MODULE_VERSION("0.1");
 
 static int __init ex0_init(void){
 	
-    log("Hello %s from kernel space!\n",name);
+    log("Hello from kernel space!\n");
     init_driver();
     
 	return SUCCESS;
@@ -20,7 +20,7 @@ static int __init ex0_init(void){
 static void __exit ex0_exit(void){
 
     destroy_driver();
-	log("Goodbye %s from kernel space!\n",name);
+	log("Goodbye from kernel space!\n");
    
 }
 

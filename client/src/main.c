@@ -3,4 +3,6 @@
 
 int main(){ 
     ConvertThreadToFiber();
+    CreateFiber(NULL,NULL);
+    SwitchToFiber(0);
 }

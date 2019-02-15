@@ -1,6 +1,8 @@
 #include "common.h"
 #include "fibers_driver.h"
 #include "driver.h"
+#include "fibers.h"
+
 #include <linux/fs.h>
 #include <linux/device.h>
 
@@ -13,9 +15,17 @@ long int device_ioctl(
     log("Called ioctl! with msg %d.\n",ioctl_num);
 
     switch (ioctl_num) {
-        
-        case IOCTL_PRINT_MSG:
-            log("IOCTL Received!\n");
+        case IOCTL_ConvertThreadToFiber:
+            log("ConvertThreadToFiber\n");
+            kernelConvertThreadToFiber(0);
+            break;
+        case IOCTL_CreateFiber:
+            log("CreateFiber\n");
+            kernelCreateFiber(NULL,NULL,0);
+            break;
+        case IOCTL_SwitchToFiber:
+            log("SwitchToFiber\n");
+            kernelSwitchToFiber(0,0);
             break;
 
   }
@@ -103,11 +113,6 @@ int init_driver(void)
         return ERROR;
     }
 
-
-    log ("%s The major device number is %d.\n",
-              "Registeration is a success", 
-              MAJOR_NUM);
-    log ("To print, IOCTL:%d\n",IOCTL_PRINT_MSG);
 
     return SUCCESS;
 }

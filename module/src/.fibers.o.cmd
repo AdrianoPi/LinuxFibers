@@ -1,9 +1,8 @@
-cmd_/home/aosv/LinuxFibers/module/build/main.mod.o := gcc -Wp,-MD,/home/aosv/LinuxFibers/module/build/.main.mod.o.d  -nostdinc -isystem /usr/lib/gcc/i686-linux-gnu/8/include  -I./arch/x86/include -I./arch/x86/include/generated  -I./include -I./arch/x86/include/uapi -I./arch/x86/include/generated/uapi -I./include/uapi -I./include/generated/uapi -include ./include/linux/kconfig.h -Iubuntu/include  -include ./include/linux/compiler_types.h -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -fshort-wchar -Werror-implicit-function-declaration -Wno-format-security -std=gnu89 -fno-PIE -DCC_HAVE_ASM_GOTO -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -m32 -msoft-float -mregparm=3 -freg-struct-return -fno-pic -mpreferred-stack-boundary=2 -march=i686 -mtune=generic -Wa,-mtune=generic32 -ffreestanding -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -DCONFIG_AS_SSSE3=1 -DCONFIG_AS_CRC32=1 -DCONFIG_AS_AVX=1 -DCONFIG_AS_AVX2=1 -DCONFIG_AS_AVX512=1 -DCONFIG_AS_SHA1_NI=1 -DCONFIG_AS_SHA256_NI=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mindirect-branch=thunk-extern -mindirect-branch-register -DRETPOLINE -fno-delete-null-pointer-checks -Wno-frame-address -Wno-format-truncation -Wno-format-overflow -Wno-int-in-bool-context -O2 --param=allow-store-data-races=0 -Wframe-larger-than=1024 -fstack-protector-strong -Wno-unused-but-set-variable -Wno-unused-const-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments -pg -mfentry -DCC_USING_FENTRY -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fno-stack-check -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -Werror=incompatible-pointer-types -Werror=designated-init -fmacro-prefix-map=./= -Wno-packed-not-aligned -I/home/aosv/LinuxFibers/module/build/../include  -DKBUILD_BASENAME='"main.mod"' -DKBUILD_MODNAME='"main"' -DMODULE  -c -o /home/aosv/LinuxFibers/module/build/main.mod.o /home/aosv/LinuxFibers/module/build/main.mod.c
+cmd_/home/aosv/LinuxFibers/module/build/../src/fibers.o := gcc -Wp,-MD,/home/aosv/LinuxFibers/module/build/../src/.fibers.o.d  -nostdinc -isystem /usr/lib/gcc/i686-linux-gnu/8/include  -I./arch/x86/include -I./arch/x86/include/generated  -I./include -I./arch/x86/include/uapi -I./arch/x86/include/generated/uapi -I./include/uapi -I./include/generated/uapi -include ./include/linux/kconfig.h -Iubuntu/include  -include ./include/linux/compiler_types.h -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -fshort-wchar -Werror-implicit-function-declaration -Wno-format-security -std=gnu89 -fno-PIE -DCC_HAVE_ASM_GOTO -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -m32 -msoft-float -mregparm=3 -freg-struct-return -fno-pic -mpreferred-stack-boundary=2 -march=i686 -mtune=generic -Wa,-mtune=generic32 -ffreestanding -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -DCONFIG_AS_SSSE3=1 -DCONFIG_AS_CRC32=1 -DCONFIG_AS_AVX=1 -DCONFIG_AS_AVX2=1 -DCONFIG_AS_AVX512=1 -DCONFIG_AS_SHA1_NI=1 -DCONFIG_AS_SHA256_NI=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mindirect-branch=thunk-extern -mindirect-branch-register -DRETPOLINE -fno-delete-null-pointer-checks -Wno-frame-address -Wno-format-truncation -Wno-format-overflow -Wno-int-in-bool-context -O2 --param=allow-store-data-races=0 -Wframe-larger-than=1024 -fstack-protector-strong -Wno-unused-but-set-variable -Wno-unused-const-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments -pg -mfentry -DCC_USING_FENTRY -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fno-stack-check -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -Werror=incompatible-pointer-types -Werror=designated-init -fmacro-prefix-map=./= -Wno-packed-not-aligned -mrecord-mcount -I/home/aosv/LinuxFibers/module/build/../include  -DMODULE  -DKBUILD_BASENAME='"fibers"' -DKBUILD_MODNAME='"main"' -c -o /home/aosv/LinuxFibers/module/build/../src/fibers.o /home/aosv/LinuxFibers/module/build/../src/fibers.c
 
-source_/home/aosv/LinuxFibers/module/build/main.mod.o := /home/aosv/LinuxFibers/module/build/main.mod.c
+source_/home/aosv/LinuxFibers/module/build/../src/fibers.o := /home/aosv/LinuxFibers/module/build/../src/fibers.c
 
-deps_/home/aosv/LinuxFibers/module/build/main.mod.o := \
-    $(wildcard include/config/module/unload.h) \
+deps_/home/aosv/LinuxFibers/module/build/../src/fibers.o := \
   include/linux/kconfig.h \
     $(wildcard include/config/cpu/big/endian.h) \
     $(wildcard include/config/booger.h) \
@@ -17,32 +16,17 @@ deps_/home/aosv/LinuxFibers/module/build/main.mod.o := \
     $(wildcard include/config/optimize/inlining.h) \
     $(wildcard include/config/gcov/kernel.h) \
     $(wildcard include/config/arch/use/builtin/bswap.h) \
-  include/linux/module.h \
-    $(wildcard include/config/modules.h) \
-    $(wildcard include/config/sysfs.h) \
-    $(wildcard include/config/modules/tree/lookup.h) \
-    $(wildcard include/config/livepatch.h) \
-    $(wildcard include/config/unused/symbols.h) \
-    $(wildcard include/config/module/sig.h) \
-    $(wildcard include/config/generic/bug.h) \
-    $(wildcard include/config/kallsyms.h) \
-    $(wildcard include/config/smp.h) \
-    $(wildcard include/config/tracepoints.h) \
-    $(wildcard include/config/tracing.h) \
-    $(wildcard include/config/event/tracing.h) \
-    $(wildcard include/config/ftrace/mcount/record.h) \
-    $(wildcard include/config/constructors.h) \
-    $(wildcard include/config/function/error/injection.h) \
+  /home/aosv/LinuxFibers/module/build/../include/fibers.h \
+  /home/aosv/LinuxFibers/module/build/../include/common.h \
+  include/linux/init.h \
+    $(wildcard include/config/strict/kernel/rwx.h) \
     $(wildcard include/config/strict/module/rwx.h) \
-  include/linux/list.h \
-    $(wildcard include/config/debug/list.h) \
-  include/linux/types.h \
-    $(wildcard include/config/have/uid16.h) \
-    $(wildcard include/config/uid16.h) \
-    $(wildcard include/config/lbdaf.h) \
-    $(wildcard include/config/arch/dma/addr/t/64bit.h) \
-    $(wildcard include/config/phys/addr/t/64bit.h) \
-    $(wildcard include/config/64bit.h) \
+  include/linux/compiler.h \
+    $(wildcard include/config/trace/branch/profiling.h) \
+    $(wildcard include/config/profile/all/branches.h) \
+    $(wildcard include/config/stack/validation.h) \
+    $(wildcard include/config/kasan.h) \
+  include/linux/compiler_types.h \
   include/uapi/linux/types.h \
   arch/x86/include/uapi/asm/types.h \
   include/uapi/asm-generic/types.h \
@@ -50,20 +34,32 @@ deps_/home/aosv/LinuxFibers/module/build/main.mod.o := \
   include/uapi/asm-generic/int-ll64.h \
   arch/x86/include/uapi/asm/bitsperlong.h \
   include/asm-generic/bitsperlong.h \
+    $(wildcard include/config/64bit.h) \
   include/uapi/asm-generic/bitsperlong.h \
   include/uapi/linux/posix_types.h \
   include/linux/stddef.h \
   include/uapi/linux/stddef.h \
-  include/linux/compiler_types.h \
   arch/x86/include/asm/posix_types.h \
     $(wildcard include/config/x86/32.h) \
   arch/x86/include/uapi/asm/posix_types_32.h \
   include/uapi/asm-generic/posix_types.h \
-  include/linux/poison.h \
-    $(wildcard include/config/illegal/pointer/value.h) \
-    $(wildcard include/config/page/poisoning/zero.h) \
-  include/linux/const.h \
-  include/uapi/linux/const.h \
+  arch/x86/include/asm/barrier.h \
+  arch/x86/include/asm/alternative.h \
+    $(wildcard include/config/smp.h) \
+  include/linux/types.h \
+    $(wildcard include/config/have/uid16.h) \
+    $(wildcard include/config/uid16.h) \
+    $(wildcard include/config/lbdaf.h) \
+    $(wildcard include/config/arch/dma/addr/t/64bit.h) \
+    $(wildcard include/config/phys/addr/t/64bit.h) \
+  include/linux/stringify.h \
+  arch/x86/include/asm/asm.h \
+  arch/x86/include/asm/nops.h \
+    $(wildcard include/config/mk7.h) \
+    $(wildcard include/config/x86/p6/nop.h) \
+    $(wildcard include/config/x86/64.h) \
+  include/asm-generic/barrier.h \
+  include/linux/kasan-checks.h \
   include/linux/kernel.h \
     $(wildcard include/config/preempt/voluntary.h) \
     $(wildcard include/config/debug/atomic/sleep.h) \
@@ -73,29 +69,18 @@ deps_/home/aosv/LinuxFibers/module/build/main.mod.o := \
     $(wildcard include/config/lock/down/kernel.h) \
     $(wildcard include/config/lock/down/mandatory.h) \
     $(wildcard include/config/panic/timeout.h) \
+    $(wildcard include/config/tracing.h) \
+    $(wildcard include/config/ftrace/mcount/record.h) \
   /usr/lib/gcc/i686-linux-gnu/8/include/stdarg.h \
   include/linux/linkage.h \
-  include/linux/stringify.h \
   include/linux/export.h \
+    $(wildcard include/config/modules.h) \
     $(wildcard include/config/modversions.h) \
     $(wildcard include/config/module/rel/crcs.h) \
     $(wildcard include/config/trim/unused/ksyms.h) \
+    $(wildcard include/config/unused/symbols.h) \
   arch/x86/include/asm/linkage.h \
-    $(wildcard include/config/x86/64.h) \
     $(wildcard include/config/x86/alignment/16.h) \
-  include/linux/compiler.h \
-    $(wildcard include/config/trace/branch/profiling.h) \
-    $(wildcard include/config/profile/all/branches.h) \
-    $(wildcard include/config/stack/validation.h) \
-    $(wildcard include/config/kasan.h) \
-  arch/x86/include/asm/barrier.h \
-  arch/x86/include/asm/alternative.h \
-  arch/x86/include/asm/asm.h \
-  arch/x86/include/asm/nops.h \
-    $(wildcard include/config/mk7.h) \
-    $(wildcard include/config/x86/p6/nop.h) \
-  include/asm-generic/barrier.h \
-  include/linux/kasan-checks.h \
   include/linux/bitops.h \
   arch/x86/include/asm/bitops.h \
     $(wildcard include/config/x86/cmov.h) \
@@ -142,8 +127,6 @@ deps_/home/aosv/LinuxFibers/module/build/main.mod.o := \
     $(wildcard include/config/printk.h) \
     $(wildcard include/config/kmsg/ids.h) \
     $(wildcard include/config/dynamic/debug.h) \
-  include/linux/init.h \
-    $(wildcard include/config/strict/kernel/rwx.h) \
   include/linux/kern_levels.h \
   include/linux/cache.h \
     $(wildcard include/config/arch/has/cache/line/size.h) \
@@ -159,6 +142,25 @@ deps_/home/aosv/LinuxFibers/module/build/main.mod.o := \
   arch/x86/include/asm/jump_label.h \
   include/linux/build_bug.h \
   arch/x86/include/asm/div64.h \
+  include/linux/module.h \
+    $(wildcard include/config/sysfs.h) \
+    $(wildcard include/config/modules/tree/lookup.h) \
+    $(wildcard include/config/livepatch.h) \
+    $(wildcard include/config/module/sig.h) \
+    $(wildcard include/config/generic/bug.h) \
+    $(wildcard include/config/kallsyms.h) \
+    $(wildcard include/config/tracepoints.h) \
+    $(wildcard include/config/event/tracing.h) \
+    $(wildcard include/config/module/unload.h) \
+    $(wildcard include/config/constructors.h) \
+    $(wildcard include/config/function/error/injection.h) \
+  include/linux/list.h \
+    $(wildcard include/config/debug/list.h) \
+  include/linux/poison.h \
+    $(wildcard include/config/illegal/pointer/value.h) \
+    $(wildcard include/config/page/poisoning/zero.h) \
+  include/linux/const.h \
+  include/uapi/linux/const.h \
   include/linux/stat.h \
   arch/x86/include/uapi/asm/stat.h \
   include/uapi/linux/stat.h \
@@ -663,9 +665,8 @@ deps_/home/aosv/LinuxFibers/module/build/main.mod.o := \
     $(wildcard include/config/modules/use/elf/rel.h) \
     $(wildcard include/config/modules/use/elf/rela.h) \
   arch/x86/include/asm/orc_types.h \
-  include/linux/vermagic.h \
-  include/generated/utsrelease.h \
+  /home/aosv/LinuxFibers/module/build/../include/common.h \
 
-/home/aosv/LinuxFibers/module/build/main.mod.o: $(deps_/home/aosv/LinuxFibers/module/build/main.mod.o)
+/home/aosv/LinuxFibers/module/build/../src/fibers.o: $(deps_/home/aosv/LinuxFibers/module/build/../src/fibers.o)
 
-$(deps_/home/aosv/LinuxFibers/module/build/main.mod.o):
+$(deps_/home/aosv/LinuxFibers/module/build/../src/fibers.o):

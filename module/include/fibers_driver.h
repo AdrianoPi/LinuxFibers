@@ -7,8 +7,9 @@
 
 #define DRIVER_NAME       "fibers"
 #define MAJOR_NUM         100
-#define IOCTL_PRINT_MSG   _IOR(MAJOR_NUM, 0, void *) // major, idx, paramtype
-
+#define IOCTL_ConvertThreadToFiber  _IOR(MAJOR_NUM, 0, void *) 
+#define IOCTL_CreateFiber           _IOR(MAJOR_NUM, 1, void *) 
+#define IOCTL_SwitchToFiber         _IOR(MAJOR_NUM, 2, void *)
 
 #endif
 
