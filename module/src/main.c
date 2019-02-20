@@ -5,7 +5,7 @@
 
 MODULE_LICENSE("GPL"); 
 MODULE_AUTHOR("Be-P");
-MODULE_DESCRIPTION("A simple Linux driver for the BBB.");  
+MODULE_DESCRIPTION("Linux Fibers module.");  
 MODULE_VERSION("0.1");        
 
 
@@ -20,7 +20,7 @@ static int __init ex0_init(void){
 static void __exit ex0_exit(void){
 
     destroy_driver();
-	log("Goodbye from kernel space!\n");
+    log("Goodbye from kernel space!\n");
    
 }
 
