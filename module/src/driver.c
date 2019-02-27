@@ -17,7 +17,7 @@ long int device_ioctl(
     switch (ioctl_num) {
         case IOCTL_ConvertThreadToFiber:
             log("ConvertThreadToFiber\n");
-            kernelConvertThreadToFiber(current->tgid);
+            kernelConvertThreadToFiber(current->tgid,current->pid);
             break;
         case IOCTL_CreateFiber:
             log("CreateFiber\n");
@@ -103,7 +103,7 @@ int init_driver(void)
     pret = (void*)device_create(
             cl,
             NULL,
-            MKDEV(100,0),
+            MKDEV(MAJOR_NUM,0),
             NULL,
             DRIVER_NAME);
     if(IS_ERR(pret)){
@@ -119,7 +119,7 @@ int init_driver(void)
 
 void destroy_driver(void){
 
-    device_destroy(cl,MKDEV(100,0));
+    device_destroy(cl,MKDEV(MAJOR_NUM,0));
     class_destroy(cl);
     unregister_chrdev(MAJOR_NUM, DRIVER_NAME);
 
