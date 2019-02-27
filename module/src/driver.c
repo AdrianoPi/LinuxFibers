@@ -21,7 +21,7 @@ long int device_ioctl(
             break;
         case IOCTL_CreateFiber:
             log("CreateFiber\n");
-            kernelCreateFiber(NULL,NULL,0);
+            kernelCreateFiber(NULL,NULL,0,0);
             break;
         case IOCTL_SwitchToFiber:
             log("SwitchToFiber\n");

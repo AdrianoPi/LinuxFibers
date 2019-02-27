@@ -57,23 +57,25 @@ struct thread{
     atomic_t active_fid;
 
     // These attributes are needed to add struct process into an hashtable
-    pid_t pid;               // key for hashtable
+    pid_t pid;                // key for hashtable
     struct hlist_node tnext;  // Needed to be added into an hastable
-}
 };
 
 DEFINE_HASHTABLE(processes,6);
-
+DEFINE_SPINLOCK(processes_lock); // processes hashtable spinlock.(RW LOCK?)
 
 pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     struct process *p;
-    struct fiber *f; 
+    struct fiber   *f; 
+    struct thread  *t;
+
+    unsigned long flags;
     log("kernelConvertThreadToFiber tgid:%d, pid:%d\n",tgid,pid);
     
-
-    //@TODO CS ***************************
-
+    
     // Access bucket with key tgid and search for the struct process
+    spin_lock_irqsave(&processes_lock,flags);
+
     hash_for_each_possible_rcu(processes, p, pnext, tgid){
         if(p==NULL) break;
         if(p->tgid==tgid) break;
@@ -87,12 +89,14 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
         p->tgid = tgid;
         atomic_set(&(p->last_fid),0);
         hash_init(p->fibers);
+        hash_init(p->threads);
         hash_add_rcu(processes,&(p->pnext),p->tgid);
 
     }
-    // END CS *****************************
 
-    struct thread *t;
+    spin_unlock_irqrestore(&processes_lock,flags);
+
+    // Create a new thread struct only if it doesn't still exists
     hash_for_each_possible_rcu(p->threads, t, tnext, pid){
        if(t==NULL) break;
        if(t->pid==pid) return ERROR; // Thread is already a Fiber
@@ -100,7 +104,7 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     
     t= kmalloc(sizeof(struct thread),GFP_KERNEL);
     t->pid=pid;
-    t->active_fid = MAKE-CRASHPLEASE;
+    hash_add_rcu(p->threads,&(t->tnext),t->pid);
 
 
 
@@ -109,23 +113,45 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     
     atomic_set(&(f->active_pid),pid);
     
-    f->stack_base = NULL;
-    f->stack_size = 0; 
+    f->stack_base = NULL; // A Fiber created from an existing Thread
+    f->stack_size = 0;    // has not a newly allocated stack
     
     f->fid = atomic_fetch_inc(&(p->last_fid));
+    atomic_set(&(t->active_fid),f->fid);
+
     hash_add_rcu(p->fibers,&(f->fnext),f->fid); 
-    return 0;
+    
+    
+
+    return SUCCESS;
 }
 
-pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid){
-    struct fiber *f;
+pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t pid){
+
+    struct fiber   *f;
     struct process *p;
+    struct thread *t;
 
     log("kernelCreateFiber\n");
 
-    // Check if struct process with given tgid exists
-    hash_for_each_possible_rcu(processes, p, pnext, tgid);
-    if(p==NULL || p->tgid != tgid ) return -1;
+    // Check 
+    //   if struct process with given tgid exists or
+    //   if struct thread with given pid exists
+    hash_for_each_possible_rcu(processes, p, pnext, tgid){
+        if ( p==NULL ) return ERROR;
+        if ( p->tgid==tgid ) break;
+    }
+
+    hash_for_each_possible_rcu(p->threads, t, tnext,pid){
+        if(t == NULL) return ERROR;
+        if(t->pid == pid ) break;
+    }
+
+    // Create a new struct fiber with given function and stack
+    // Initially registers are not set because they are needed
+    // to store data when a running fiber is scheduled out.
+
+    
 
 
     // Create a new struct fiber with a new stack
