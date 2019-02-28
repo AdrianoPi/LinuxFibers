@@ -126,7 +126,7 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     return SUCCESS;
 }
 
-pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t pid){
+pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t pid, void *stack_base, size_t stack_size){
 
     struct fiber   *f;
     struct process *p;
@@ -148,26 +148,23 @@ pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t p
     }
 
     // Create a new struct fiber with given function and stack
-    // Initially registers are not set because they are needed
-    // to store data when a running fiber is scheduled out.
-
-    
-
+    // Initially registers are not set because they are needed to store 
+    // data when a running fiber is scheduled out, only rip is set.
 
     // Create a new struct fiber with a new stack
 
     f= kmalloc(sizeof(struct fiber),GFP_KERNEL);
     f->fid = atomic_fetch_inc(&(p->last_fid));
 
-    atomic_set(&(f->active_pid),current->pid);
+    //atomic_set(&(f->active_pid),current->pid);
 
-    f->stack_base = kmalloc(1024,GFP_USER);
-    f->stack_size = 1024;
+    f->stack_base = stack_base;
+    f->stack_size = stack_size;
 
     // @TODO USER_FN LAYOUT 
-    //f->stack_base[1024-4]=*(param); // 1st param
-    //f->stack_base[1024-8]=NULL // ret addr
-    // f->sp = f->stack_base[1024-8]
+    f->stack_base[stack_size-4]=*(param); // 1st param
+    f->stack_base[stack_size-8]=NULL      // ret addr
+    f->sp = f->stack_base[stack_size-8]
 
     hash_add_rcu(p->fibers,&(f->fnext),f->fid);
     
