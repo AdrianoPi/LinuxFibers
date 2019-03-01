@@ -10,4 +10,13 @@
 #define SUCCESS 0
 #define ERROR  -1
 
+
+#define DEBUG
+#ifdef DEBUG
+# define DEBUG_PRINT(fmt,...) printk(KERN_INFO "\e[1;33mFIBERS - dbg\e[0m: " fmt , ##__VA_ARGS__)
+#else
+# define DEBUG_PRINT(fmt)
+#endif
+
+
 #endif
