@@ -5,6 +5,8 @@
 !*.*
 !Makefile
 !.gitignore
+!client
+!module
 
 *.o
 *.swp
