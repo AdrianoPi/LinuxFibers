@@ -130,7 +130,7 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     
     
 
-    return SUCCESS;
+    return f->fid;
 }
 
 pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t pid, void *stack_base, size_t stack_size){

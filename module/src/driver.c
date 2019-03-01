@@ -18,7 +18,7 @@ long int device_ioctl(
     switch (ioctl_num) {
         case IOCTL_ConvertThreadToFiber:
             log("ConvertThreadToFiber\n");
-            kernelConvertThreadToFiber(current->tgid,current->pid);
+            return kernelConvertThreadToFiber(current->tgid,current->pid);
             break;
         case IOCTL_CreateFiber:
             log("CreateFiber\n");

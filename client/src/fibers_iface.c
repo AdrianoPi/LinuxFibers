@@ -26,7 +26,7 @@ pid_t ConvertThreadToFiber(){
 
     if (ret ==-1 ) perror("ioctl");   
 
-    return 0;
+    return ret;
 }
 
 
