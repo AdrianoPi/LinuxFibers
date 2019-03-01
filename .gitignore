@@ -1,0 +1,17 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+!Makefile
+!.gitignore
+
+*.o
+*.swp
+*.cmd
+*.out
+*.order
+*.symvers
+*.ko
+*.mod.c
+.tmp_versions
