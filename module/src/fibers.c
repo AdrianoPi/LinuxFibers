@@ -70,6 +70,7 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     struct thread  *t;
 
     unsigned long flags;
+
     log("kernelConvertThreadToFiber tgid:%d, pid:%d\n",tgid,pid);
     
     
@@ -151,20 +152,19 @@ pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t p
     // Initially registers are not set because they are needed to store 
     // data when a running fiber is scheduled out, only rip is set.
 
-    // Create a new struct fiber with a new stack
-
     f= kmalloc(sizeof(struct fiber),GFP_KERNEL);
-    f->fid = atomic_fetch_inc(&(p->last_fid));
-
-    //atomic_set(&(f->active_pid),current->pid);
+    f->fid = atomic_fetch_inc(&(p->last_fid)) ;
 
     f->stack_base = stack_base;
     f->stack_size = stack_size;
 
-    // @TODO USER_FN LAYOUT 
-    f->stack_base[stack_size-4]=*(param); // 1st param
-    f->stack_base[stack_size-8]=NULL      // ret addr
-    f->sp = f->stack_base[stack_size-8]
+    f->stack_base[stack_size-8]= NULL // ret addr
+    
+    memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
+    f->pt_regs.ip= (long)user_fn;
+    f->pt_regs.di= param;
+    f->pt_regs.sp= (long)(stack_base + stack_size) - 8; 
+    f->pt_regs.bp= f->pt_regs.sp;
 
     hash_add_rcu(p->fibers,&(f->fnext),f->fid);
     
