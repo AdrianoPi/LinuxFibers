@@ -14,7 +14,7 @@
 struct fiber_args{
     void *user_fn;
 
-}
+};
 
 #endif
 
