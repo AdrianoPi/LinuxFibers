@@ -11,6 +11,8 @@
 
 #define task_stack_page(tsk)    ((void *)(tsk))
 
+// @TODO UPON `return ERROR` ADD LOG()
+
 // Mantains the cpu context associated with the workflow of this fiber.
 struct fiber{
 
@@ -158,6 +160,7 @@ pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t p
 
     f= kmalloc(sizeof(struct fiber),GFP_KERNEL);
     f->fid = atomic_fetch_inc(&(p->last_fid)) ;
+    atomic_set(&(f->active_pid),0);
 
     f->stack_base = stack_base;
     f->stack_size = stack_size;
@@ -167,7 +170,6 @@ pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t p
     f->pt_regs.di = (long) param;
     f->pt_regs.sp = (long) (stack_base + stack_size) - 8; 
     f->pt_regs.bp = f->pt_regs.sp;
-
     f->pt_regs.sp = (long) NULL; 
     
     hash_add_rcu(p->fibers,&(f->fnext),f->fid);
@@ -181,55 +183,73 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     
     struct process *p;
     struct thread  *t;
-    struct fiber   *f;
-    struct fiber   *f_current;
-    
-    struct pt_regs *regs;
-    regs = NULL;
-    
-    log("kernelSwitchToFiber\n");
+    struct fiber   *dst_f;
+    struct fiber   *src_f;
+    struct pt_regs *cpu_regs;
+    long src_fid,old;
+    log("kernelSwitchToFiber tgid:%d pid:%d fid:%d\n",tgid,pid,fid);
+
 
     // Check if struct process exists otherwise return error
     hash_for_each_possible_rcu(processes, p, pnext, tgid){
+
         if(p==NULL) return ERROR;   // In the current process no thread has
                                     // been converted to fiber yet
-        
         if(p->tgid==tgid) break;
     }
+
     
     // Check if current thread has been converted to fiber otherwise error
     hash_for_each_possible_rcu(p->threads, t, tnext, pid){
+
        if(t==NULL) return ERROR;    // Calling thread was not converted yet
        
        if(t->pid==pid) break;
     }
     
-    // TODO: Error if target fiber is the current fiber?
-    // if(t->active_fiber==fid) return ERROR;
+    src_fid=atomic_read(&(t->active_fid));
+    if(src_fid == fid) return ERROR;
 
-    
-    // Find currently executing fiber, we need to write into this later
-    hash_for_each_possible_rcu(p->fibers, f_current, fnext, fid){
-       if(f_current==NULL) return ERROR;    // Current f does not exist???
-       
-       if(f_current->fid==atomic_read(& t->active_fid)) break;
-    }
-        
+
     // Find target fiber
-    hash_for_each_possible_rcu(p->fibers, f, fnext, fid){
-       if(f==NULL) return ERROR;    // Target fiber does not exist
+    hash_for_each_possible_rcu(p->fibers, dst_f, fnext, fid){
+       if(dst_f==NULL) return ERROR;    // Target fiber does not exist
        
-       if(f->fid==fid) break;
+       if(dst_f->fid==fid) break;
     }
-    
-    // Save current cpu context into current fiber
-    memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
-    // fpu__save(&f_current->fpu);
-    
-    
-    // Restore into the cpu the context saved in the target fiber (id=fid)
 
 
+    // Check if target fiber is already in use and book it for the new use
+    if( (old = atomic_cmpxchg(&(dst_f->active_pid),0,pid)) !=0){
+        log("[%d->%d] Error, fiber %d was already in use by %ld",tgid,pid,fid,old);
+        return ERROR; 
+    }
+
+ 
+    // Find currently executing fiber, we need to write into it
+    hash_for_each_possible_rcu(p->fibers, src_f, fnext, src_fid){
+       if(src_f==NULL) return ERROR;    // src_f does not exist???
+       
+       if(src_f->fid==src_fid) break;
+    }
+
+        
+    // Save current cpu context into current fiber and mark it as not running
+    cpu_regs = task_pt_regs(current); 
+
+    memcpy(&(src_f->pt_regs), cpu_regs, sizeof(struct pt_regs));
+    // ****************************************
+    // @TODO fpu__save(&f_current->fpu);
+    // ***************************************
+    atomic_set(&(src_f->active_pid),0);
+
+    
+    // Restore into the CPU the context of dst_f 
+    memcpy(cpu_regs, &(dst_f->pt_regs), sizeof(struct pt_regs));
+    // ****************************************
+    // @TODO RESTORE fpu;
+    // ***************************************
+    
 
     return 0;
 }
