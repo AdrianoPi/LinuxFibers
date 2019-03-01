@@ -7,6 +7,9 @@
 #include <linux/hashtable.h>
 #include <linux/atomic.h>
 #include <linux/sched.h>
+#include <asm/thread_info.h>
+
+#define task_stack_page(tsk)    ((void *)(tsk))
 
 // Mantains the cpu context associated with the workflow of this fiber.
 struct fiber{
@@ -20,7 +23,7 @@ struct fiber{
     unsigned long   flags;        // Needed to correctly restore interrupts
     */ 
 
-    struct pt_regs  regs;         // These two fields will store the state
+    struct pt_regs  pt_regs;         // These two fields will store the state
     struct fpu      fpu;          // of the CPU of this fiber
 
     void           *stack_base;   // Base of allocated stack, to be freed
@@ -65,9 +68,10 @@ DEFINE_HASHTABLE(processes,6);
 DEFINE_SPINLOCK(processes_lock); // processes hashtable spinlock.(RW LOCK?)
 
 pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
+    
     struct process *p;
-    struct fiber   *f; 
     struct thread  *t;
+    struct fiber   *f;
 
     unsigned long flags;
 
@@ -129,9 +133,9 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
 
 pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t pid, void *stack_base, size_t stack_size){
 
-    struct fiber   *f;
     struct process *p;
-    struct thread *t;
+    struct thread  *t;
+    struct fiber   *f;
 
     log("kernelCreateFiber\n");
 
@@ -157,15 +161,15 @@ pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t p
 
     f->stack_base = stack_base;
     f->stack_size = stack_size;
-
-    f->stack_base[stack_size-8]= NULL // ret addr
     
     memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
-    f->pt_regs.ip= (long)user_fn;
-    f->pt_regs.di= param;
-    f->pt_regs.sp= (long)(stack_base + stack_size) - 8; 
-    f->pt_regs.bp= f->pt_regs.sp;
+    f->pt_regs.ip = (long) user_fn;
+    f->pt_regs.di = (long) param;
+    f->pt_regs.sp = (long) (stack_base + stack_size) - 8; 
+    f->pt_regs.bp = f->pt_regs.sp;
 
+    f->pt_regs.sp = (long) NULL; 
+    
     hash_add_rcu(p->fibers,&(f->fnext),f->fid);
     
     // Maybe call SwitchToFiber(?)
@@ -173,16 +177,62 @@ pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t p
     return 0;
 }
 
-pid_t kernelSwitchToFiber(pid_t fid, pid_t pid){
+pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
+    
+    struct process *p;
+    struct thread  *t;
+    struct fiber   *f;
+    struct fiber   *f_current;
+    
+    struct pt_regs *regs;
+    regs = NULL;
+    
     log("kernelSwitchToFiber\n");
 
     // Check if struct process exists otherwise return error
-    // Find the fiber that was activated by such tid and
-    //     save the current cpu context into this fiber
-    // Restore into the cpu the context saved into the fiber fid
+    hash_for_each_possible_rcu(processes, p, pnext, tgid){
+        if(p==NULL) return ERROR;   // In the current process no thread has
+                                    // been converted to fiber yet
+        
+        if(p->tgid==tgid) break;
+    }
+    
+    // Check if current thread has been converted to fiber otherwise error
+    hash_for_each_possible_rcu(p->threads, t, tnext, pid){
+       if(t==NULL) return ERROR;    // Calling thread was not converted yet
+       
+       if(t->pid==pid) break;
+    }
+    
+    // TODO: Error if target fiber is the current fiber?
+    // if(t->active_fiber==fid) return ERROR;
+
+    
+    // Find currently executing fiber, we need to write into this later
+    hash_for_each_possible_rcu(p->fibers, f_current, fnext, fid){
+       if(f_current==NULL) return ERROR;    // Current f does not exist???
+       
+       if(f_current->fid==atomic_read(& t->active_fid)) break;
+    }
+        
+    // Find target fiber
+    hash_for_each_possible_rcu(p->fibers, f, fnext, fid){
+       if(f==NULL) return ERROR;    // Target fiber does not exist
+       
+       if(f->fid==fid) break;
+    }
+    
+    // Save current cpu context into current fiber
+    memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
+    // fpu__save(&f_current->fpu);
+    
+    
+    // Restore into the cpu the context saved in the target fiber (id=fid)
 
 
 
     return 0;
 }
+
+
 
