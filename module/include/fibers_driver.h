@@ -11,5 +11,10 @@
 #define IOCTL_CreateFiber           _IOR(MAJOR_NUM, 1, void *) 
 #define IOCTL_SwitchToFiber         _IOR(MAJOR_NUM, 2, void *)
 
+struct fiber_args{
+    void *user_fn;
+
+}
+
 #endif
 
