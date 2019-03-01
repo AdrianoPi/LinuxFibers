@@ -5,6 +5,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+
+#define STACK_SIZE 1024
+
+
 // This is the file descriptor needed to isse ioctls,
 // It isn't efficient to reopen it f.e. ioctl and it is 
 // also usefull to hook cleanup functions on its release
@@ -27,13 +31,25 @@ pid_t ConvertThreadToFiber(){
 
 
 pid_t CreateFiber(void (*user_function)(void*),  void * param){
-    int ret = ioctl(fd,IOCTL_CreateFiber,0);
+    
+    // @TODO ADD LIST OF MALLOCed MEM AREAS FOR CLEANUP PURPOSES
+    struct fiber_args *fargs = malloc(sizeof(struct fiber_args));
+   
+    fargs->user_fn   = user_function;
+    fargs->fn_params = param;
+     
+    fargs->stack_base = malloc(STACK_SIZE);
+    fargs->stack_size = STACK_SIZE;
+    
+    
+    int ret = ioctl(fd,IOCTL_CreateFiber, (long unsigned int) fargs );
     if (ret ==-1 ) perror("ioctl");
     else printf("Ok.");
+    return ret;
 }
 
-long SwitchToFiber(pid_t pid){
-    int ret = ioctl(fd,IOCTL_SwitchToFiber,0);
+long SwitchToFiber(pid_t fiber_id){
+    int ret = ioctl(fd,IOCTL_SwitchToFiber,(long unsigned int)fiber_id);
     if (ret ==-1 ) perror("ioctl");
     else printf("Ok.");
 

@@ -12,8 +12,16 @@
 #define IOCTL_SwitchToFiber         _IOR(MAJOR_NUM, 2, void *)
 
 struct fiber_args{
-    void *user_fn;
 
+        
+   
+    void *stack_base;
+    long  stack_size;
+     
+    void ( *user_fn )(void *);
+    void *fn_params;
+
+    
 };
 
 #endif

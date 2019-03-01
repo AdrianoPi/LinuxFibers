@@ -176,7 +176,7 @@ pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t p
     
     // Maybe call SwitchToFiber(?)
 
-    return 0;
+    return f->fid;
 }
 
 pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){

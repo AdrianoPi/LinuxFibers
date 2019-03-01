@@ -12,6 +12,7 @@ long int device_ioctl(
     unsigned int ioctl_num,    /* The number of the ioctl */
     long unsigned int ioctl_param) /* The parameter to it */
 {
+    struct fiber_args *fargs;
     log("Called ioctl! with msg %d.\n",ioctl_num);
 
     switch (ioctl_num) {
@@ -21,11 +22,21 @@ long int device_ioctl(
             break;
         case IOCTL_CreateFiber:
             log("CreateFiber\n");
-            kernelCreateFiber(NULL,NULL,0,0, NULL, 0);
+            
+            fargs = (struct fiber_args *) ioctl_param;
+            
+            return kernelCreateFiber(
+                fargs->user_fn,
+                fargs->fn_params,
+                current->tgid,
+                current->pid,
+                fargs->stack_base,
+                fargs->stack_size);
+
             break;
         case IOCTL_SwitchToFiber:
             log("SwitchToFiber\n");
-            kernelSwitchToFiber(0,0,0);
+            kernelSwitchToFiber(current->tgid,current->pid,(pid_t) ioctl_param );
             break;
 
   }

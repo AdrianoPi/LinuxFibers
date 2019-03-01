@@ -4,7 +4,7 @@
 
 
 MODULE_LICENSE("GPL"); 
-MODULE_AUTHOR("Be-P");
+MODULE_AUTHOR("AdrianoPi & Be-P");
 MODULE_DESCRIPTION("Linux Fibers module.");  
 MODULE_VERSION("0.1");        
 
