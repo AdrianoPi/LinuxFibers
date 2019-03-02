@@ -18,5 +18,12 @@
 # define DEBUG_PRINT(fmt)
 #endif
 
+#define DEBUG
+#ifdef DEBUG
+# define dbg(fmt,...) printk(KERN_INFO "\e[1;33mFIBERS - dbg\e[0m: " fmt , ##__VA_ARGS__)
+#else
+# define dbg(fmt)
+#endif
+
 
 #endif
