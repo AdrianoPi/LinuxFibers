@@ -16,4 +16,5 @@
 *.symvers
 *.ko
 *.mod.c
-.tmp_versions
+build/.tmp_versions
+*.mod
