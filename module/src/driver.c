@@ -20,7 +20,7 @@ long int device_ioctl(
             break;
         case IOCTL_CreateFiber:
             fargs = (struct fiber_args *) ioctl_param;
-            dbg("[IOCTL]user function:%p",fargs->user_fn); 
+            dbg("[IOCTL]fargs %p and user function:%p",fargs,fargs->user_fn); 
             return kernelCreateFiber(
                 fargs->user_fn,
                 fargs->fn_params,

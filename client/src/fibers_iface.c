@@ -41,7 +41,7 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
     fargs->stack_base = malloc(STACK_SIZE);
     fargs->stack_size = STACK_SIZE;
     
-    printf("Create Fiber user_fn %p user_param %p\n",user_function,param); 
+    printf("Create Fiber fargs %p, user_fn %p, user_param %p\n",fargs,user_function,param); 
     int ret = ioctl(fd,IOCTL_CreateFiber, (long ) fargs );
     if (ret ==-1 ) perror("ioctl");
     else printf("Ok.");
