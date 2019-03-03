@@ -5,12 +5,6 @@
 #include <linux/ioctl.h>
 
 
-#define DRIVER_NAME       "fibers"
-#define MAJOR_NUM         100
-#define IOCTL_ConvertThreadToFiber  _IOR(MAJOR_NUM, 0, void *) 
-#define IOCTL_CreateFiber           _IOR(MAJOR_NUM, 1, void *) 
-#define IOCTL_SwitchToFiber         _IOR(MAJOR_NUM, 2, void *)
-
 struct fiber_args{
 
         
@@ -18,11 +12,17 @@ struct fiber_args{
     void *stack_base;
     long  stack_size;
      
-    void ( *user_fn )(void *);
+    long user_fn;
     void *fn_params;
 
     
 };
+
+#define DRIVER_NAME       "fibers"
+#define MAJOR_NUM         100
+#define IOCTL_ConvertThreadToFiber  _IO(MAJOR_NUM, 0)
+#define IOCTL_CreateFiber           _IOW(MAJOR_NUM, 1, struct fiber_args * ) 
+#define IOCTL_SwitchToFiber         _IOW(MAJOR_NUM, 2, long )
 
 #endif
 

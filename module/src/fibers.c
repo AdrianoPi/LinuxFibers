@@ -137,7 +137,7 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     return f->fid;
 }
 
-pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t pid, void *stack_base, size_t stack_size){
+pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *stack_base, size_t stack_size){
 
 
     struct process *p;
@@ -178,12 +178,13 @@ pid_t kernelCreateFiber(void (*user_fn)(void *), void *param, pid_t tgid,pid_t p
     
     memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
     f->pt_regs.ip = (long) user_fn;
+    f->pt_regs.cx = (long) user_fn;
     f->pt_regs.di = (long) param;
     f->pt_regs.sp = (long) (stack_base + stack_size) - 8; 
     f->pt_regs.bp = f->pt_regs.sp;
-    *((long*)(f->pt_regs.sp)) = (long)NULL; 
+    //*((long*)(f->pt_regs.sp)) = (long)NULL; 
    
-    dbg("Inserting a new fiber fid %d with active_pid %d and RIP %p",f->fid,atomic_read(&(f->active_pid)),(void*)f->pt_regs.ip);
+    dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
      
     hash_add_rcu(p->fibers,&(f->fnext),f->fid);
     
@@ -262,7 +263,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     // ***************************************
     atomic_set(&(src_f->active_pid),0);
     
-    dbg("SwitchToFiber, Saved CPU ctx into src_fiber %d and set its active_pid to 0\n",src_f->fid);
+    dbg("SwitchToFiber, Saved CPU ctx into src_fiber %d and active_pid to 0\n",src_f->fid);
     
     // Restore into the CPU the context of dst_f 
     memcpy(cpu_regs, &(dst_f->pt_regs), sizeof(struct pt_regs));
@@ -270,6 +271,6 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     // @TODO RESTORE fpu;
     // ***************************************
     dbg("SwitchToFiber, Loaded into CPU ctx the context that was into dst_fiber %d\n",dst_f->fid);
-    dbg("SwitchToFiber, Loaded RIP: %p\n",(void*)dst_f->pt_regs.ip);
+    dbg("SwitchToFiber, Loaded RIP: %ld\n",dst_f->pt_regs.ip);
     return SUCCESS;
 }

@@ -33,16 +33,15 @@ pid_t ConvertThreadToFiber(){
 pid_t CreateFiber(void (*user_function)(void*),  void * param){
     
     // @TODO ADD LIST OF MALLOCed MEM AREAS FOR CLEANUP PURPOSES
-    struct fiber_args *fargs = malloc(sizeof(struct fiber_args));
-   
-    fargs->user_fn   = user_function;
-    fargs->fn_params = param;
+    struct fiber_args fargs;   
+    fargs.user_fn   = (long) user_function;
+    fargs.fn_params = param;
      
-    fargs->stack_base = malloc(STACK_SIZE);
-    fargs->stack_size = STACK_SIZE;
+    fargs.stack_base = malloc(STACK_SIZE);
+    fargs.stack_size = STACK_SIZE;
     
-    printf("Create Fiber fargs %p, user_fn %p, user_param %p\n",fargs,user_function,param); 
-    int ret = ioctl(fd,IOCTL_CreateFiber, (long ) fargs );
+    printf("Create Fiber ioctl_param %ld, user_fn %ld\n",(long unsigned)&fargs,fargs.user_fn); 
+    int ret = ioctl(fd,IOCTL_CreateFiber, (long unsigned ) &fargs );
     if (ret ==-1 ) perror("ioctl");
     else printf("Ok.");
     return ret;

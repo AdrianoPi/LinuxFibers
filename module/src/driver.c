@@ -3,31 +3,42 @@
 #include "driver.h"
 #include "fibers.h"
 
+#include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/device.h>
+#include <linux/uaccess.h>
 
 
 long int device_ioctl(
     struct file *file,
     unsigned int ioctl_num,    /* The number of the ioctl */
-    long unsigned int ioctl_param) /* The parameter to it */
+    unsigned long ioctl_param) /* The parameter to it */
 {
-    struct fiber_args *fargs;
+    struct fiber_args fargs;
 
     switch (ioctl_num) {
         case IOCTL_ConvertThreadToFiber:
             return kernelConvertThreadToFiber(current->tgid,current->pid);
             break;
         case IOCTL_CreateFiber:
-            fargs = (struct fiber_args *) ioctl_param;
-            dbg("[IOCTL]fargs %p and user function:%p",fargs,fargs->user_fn); 
-            return kernelCreateFiber(
-                fargs->user_fn,
-                fargs->fn_params,
+            if(!access_ok(VERIFY_READ,ioctl_param,sizeof(struct fiber_args))){
+                log("CreateFiber, invalid ioctl_param\n");
+                return ERROR;
+            }
+
+            if(copy_from_user(&fargs, (void*) ioctl_param, sizeof(struct fiber_args))){
+                log("CreateFiber, error Unable to copy_from_user");
+                return ERROR;
+            }
+ 
+            dbg("******[IOCTL]param %ld and user function:%ld",ioctl_param,fargs.user_fn); 
+            return  kernelCreateFiber(
+                fargs.user_fn,
+                fargs.fn_params,
                 current->tgid,
                 current->pid,
-                fargs->stack_base,
-                fargs->stack_size);
+                fargs.stack_base,
+                fargs.stack_size);
 
             break;
         case IOCTL_SwitchToFiber:
