@@ -92,6 +92,10 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
         dbg("There was no process %d in the hashtable, lets create one.\n",tgid);
 
         p= kmalloc(sizeof(struct process),GFP_KERNEL);
+        if(!p){
+            log("ConvertThreadToFiber, error allocating struct process.\n");
+            return ERROR;
+        }
 
         p->tgid = tgid;
         atomic_set(&(p->last_fid),0);
@@ -114,6 +118,11 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
 
     
     t= kmalloc(sizeof(struct thread),GFP_KERNEL);
+    if(!t){ 
+        log("ConvertThreadToFiber, error allocating struct thread.\n");
+        return ERROR;
+    }
+
     t->pid=pid;
     //t->active_fid is set below
     hash_add_rcu(p->threads,&(t->tnext),t->pid);
@@ -170,6 +179,11 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     // data when a running fiber is scheduled out, only rip is set.
 
     f= kmalloc(sizeof(struct fiber),GFP_KERNEL);
+    if(!f){
+        log("CreateFiber, error allocating struct fiber");
+        return ERROR;
+    }
+
     f->fid = atomic_fetch_inc(&(p->last_fid)) ;
     atomic_set(&(f->active_pid),0);
 
@@ -178,18 +192,15 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     
     memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
     f->pt_regs.ip = (long) user_fn;
-    f->pt_regs.cx = (long) user_fn;
+    //f->pt_regs.cx = (long) user_fn;
     f->pt_regs.di = (long) param;
     f->pt_regs.sp = (long) (stack_base + stack_size) - 8; 
     f->pt_regs.bp = f->pt_regs.sp;
-    //*((long*)(f->pt_regs.sp)) = (long)NULL; 
    
     dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
      
     hash_add_rcu(p->fibers,&(f->fnext),f->fid);
     
-    // Maybe call SwitchToFiber(?)
-
     return f->fid;
 }
 
