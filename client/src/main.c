@@ -4,7 +4,18 @@
 
 int mfid=0;
 
+void fiber_fn1( void * p);
+
 void fiber_fn( void * p ){
+    int otherFid = CreateFiber(fiber_fn1, (void *)2);
+    while(1){
+        printf("[%ld] I'm aliveU.\n",(long int)p);  
+        sleep(1);
+        SwitchToFiber(otherFid);
+    }
+}
+
+void fiber_fn1( void * p ){
     while(1){
         printf("[%ld] I'm aliveU.\n",(long int)p);  
         sleep(1);
