@@ -18,13 +18,11 @@ int main(){
 
     int fid  = CreateFiber(fiber_fn, (void *)1);
     printf("Created Fiber %d\n",fid);
-    SwitchToFiber(fid);
 
     while(1){
         printf("[%d] I'm aliveA.\n",mfid);  
         sleep(1);
         SwitchToFiber(fid);
-    
-
     }
+    
 }

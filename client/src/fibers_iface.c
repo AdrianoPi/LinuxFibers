@@ -1,9 +1,11 @@
 #include "fibers_driver.h" // For MAJOR_NUM and IOCTL_*
 #include "fibers_iface.h"
+
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 
 
 #define STACK_SIZE 1024
@@ -39,8 +41,8 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
     
     // Set stack_base at a 16-memory-aligned address and zero it.
     if (posix_memalign(&(fargs.stack_base), 16, STACK_SIZE)){
-        dbg("Could not get a memory-aligned stack base!\n"
-        return ERROR;
+        perror("Could not get a memory-aligned stack base!\n");
+        return -1;
     }
     bzero(fargs.stack_base, STACK_SIZE);
     
@@ -55,8 +57,8 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
 
 long SwitchToFiber(pid_t fiber_id){
     int ret = ioctl(fd,IOCTL_SwitchToFiber,(long unsigned int)fiber_id);
-    if (ret ==-1 ) perror("ioctl");
-    else printf("Ok.");
+    if (ret ==-1 ) perror("ioctl\n");
+    else printf("Ok.\n");
 
 }
 
