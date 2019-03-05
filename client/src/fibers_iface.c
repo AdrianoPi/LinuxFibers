@@ -9,7 +9,7 @@
 #define STACK_SIZE 1024
 
 
-// This is the file descriptor needed to isse ioctls,
+// This is the file descriptor needed to issue ioctls,
 // It isn't efficient to reopen it f.e. ioctl and it is 
 // also usefull to hook cleanup functions on its release
 int fd;
@@ -24,7 +24,7 @@ pid_t ConvertThreadToFiber(){
     ret = ioctl(fd,IOCTL_ConvertThreadToFiber,0);
     printf("ret:%d.\n",ret);
 
-    if (ret ==-1 ) perror("ioctl");   
+    if (ret ==-1 ) perror("ioctl");
 
     return ret;
 }

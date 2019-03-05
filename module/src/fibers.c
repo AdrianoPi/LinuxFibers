@@ -69,6 +69,46 @@ struct thread{
 DEFINE_HASHTABLE(processes,6);
 DEFINE_SPINLOCK(processes_lock); // processes hashtable spinlock.(RW LOCK?)
 
+
+// get_x_by_id are auxiliary functions
+// If no matching entry is found, they return NULL
+struct process * get_process_by_id(pid_t tgid){
+    
+    struct process *p;
+    
+    hash_for_each_possible_rcu(processes, p, pnext, tgid){
+        if(p==NULL) break;
+        if(p->tgid==tgid) break;
+    }
+    
+    return p;
+}
+
+struct thread * get_thread_by_id(pid_t pid, struct process * p){
+    
+    struct thread *t;
+    
+    hash_for_each_possible_rcu(p->threads, t, tnext, pid){
+        if(t==NULL) break;
+        if(t->pid==pid) break;
+    }
+    
+    return t;
+}
+
+struct fiber * get_fiber_by_id(pid_t fid, struct process * p){
+    
+    struct fiber *f;
+    
+    hash_for_each_possible_rcu(p->fibers, f, fnext, fid){
+        if(f==NULL) break;
+        if(f->fid==fid) break;
+    }
+    
+    return f;
+}
+
+
 pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     struct process *p;
     struct thread  *t;
@@ -81,13 +121,10 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     
     // Access bucket with key tgid and search for the struct process
     spin_lock_irqsave(&processes_lock,flags);
+    
+    p = get_process_by_id(tgid);
 
-    hash_for_each_possible_rcu(processes, p, pnext, tgid){
-        if(p==NULL) break;
-        if(p->tgid==tgid) break;
-    }
-
-    if(p==NULL){    // First thread of process that is going to be 
+    if(!p){    // First thread of process that is going to be 
                     //converted to Fiber.
         dbg("There was no process %d in the hashtable, lets create one.\n",tgid);
 
@@ -107,21 +144,20 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
 
     spin_unlock_irqrestore(&processes_lock,flags);
 
-    // Create a new thread struct only if it doesn't still exists
-    hash_for_each_possible_rcu(p->threads, t, tnext, pid){
-        if(t==NULL) break;
-        if(t->pid==pid) {
-            dbg("Error converting thread %d to fiber, it already exists in p->threads.\n",pid);
-            return ERROR; // Thread is already a Fiber
-        }
+    // Create a new thread struct only if it hadn't been created yet    
+    t = get_thread_by_id(pid, p);
+    
+    if(t){ // thread already was a fiber
+        dbg("Error converting thread %d to fiber, it already exists in p->threads.\n",pid);
+        return ERROR;
     }
-
     
     t= kmalloc(sizeof(struct thread),GFP_KERNEL);
-    if(!t){ 
+    if(!t) {
         log("ConvertThreadToFiber, error allocating struct thread.\n");
         return ERROR;
     }
+
 
     t->pid=pid;
     //t->active_fid is set below
@@ -155,23 +191,18 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
 
     log("kernelCreateFiber\n");
 
-    // Check 
-    //   if struct process with given tgid exists or
-    //   if struct thread with given pid exists
-    hash_for_each_possible_rcu(processes, p, pnext, tgid){
-        if ( p==NULL ) {
-            dbg("Error creating fiber, process %d still not created into processes hashtable",tgid);
-            return ERROR;
-        }
-        if ( p->tgid==tgid ) break;
+    // Check if struct process with given tgid exists or
+    p = get_process_by_id(tgid);
+    if(!p){
+        dbg("Error creating fiber, process %d still not created into processes hashtable",tgid);
+        return ERROR;        
     }
-
-    hash_for_each_possible_rcu(p->threads, t, tnext,pid){
-        if(t == NULL){ 
-            dbg("Error creating fiber, thread %d still not created into %d->threads",pid,tgid);
-            return ERROR;
-        }
-        if(t->pid == pid ) break;
+    
+    // Check if struct thread with given pid exists
+    t = get_thread_by_id(pid, p);
+    if(!t){
+        dbg("Error creating fiber, thread %d still not created into %d->threads",pid,tgid);
+        return ERROR;
     }
 
     // Create a new struct fiber with given function and stack
@@ -198,7 +229,7 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     f->pt_regs.bp = f->pt_regs.sp;
    
     dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
-     
+    
     hash_add_rcu(p->fibers,&(f->fnext),f->fid);
     
     return f->fid;
@@ -216,35 +247,29 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
 
 
     // Check if struct process exists otherwise return error
-    hash_for_each_possible_rcu(processes, p, pnext, tgid){
-
-        if(p==NULL){
-            dbg("Error SwitchToFiber, process %d still not created.\n",tgid);
-            return ERROR;        // In the current process no thread has
-        }                        // been converted to fiber yet
-        if(p->tgid==tgid) break;
+    p = get_process_by_id(tgid);
+    if(!p){
+        dbg("Error SwitchToFiber, process %d still not created.\n",tgid);
+        return ERROR;   // In the current process no thread has
+                        // been converted to fiber yet
     }
-
     
     // Check if current thread has been converted to fiber otherwise error
-    hash_for_each_possible_rcu(p->threads, t, tnext, pid){
-
-        if(t==NULL){
-            dbg("Error SwitchToFiber, thread %d still not in %d->threads\n",pid,tgid);
-            return ERROR;    // Calling thread was not converted yet
-       }
-       if(t->pid==pid) break;
+    t = get_thread_by_id(pid, p);
+    if(!t){
+        dbg("Error SwitchToFiber, thread %d still not in %d->threads\n",pid,tgid);
+        return ERROR;    // Calling thread was not converted yet
     }
+        
     src_fid=atomic_read(&(t->active_fid));
     
     // Find target fiber
-    hash_for_each_possible_rcu(p->fibers, dst_f, fnext, fid){
-        if(dst_f==NULL){
-            dbg("Error SwitchToFiber, fiber %d still not created\n",fid);
-            return ERROR;    // Target fiber does not exist
-       }
-       if(dst_f->fid==fid) break;
+    dst_f = get_fiber_by_id(fid, p);
+    if (!dst_f){
+        dbg("Error SwitchToFiber, fiber %d not created yet\n",fid);
+        return ERROR;    // Target fiber does not exist
     }
+    
     dbg("SwitchToFiber, found dest_fiber %d has active_pid %d\n",fid,atomic_read(&(dst_f->active_pid)));
 
     // Check if target fiber is already in use and book it for the new use
@@ -256,13 +281,12 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     
     dbg("Searching src_fiber %ld into p->[%p]",src_fid,p->fibers); 
     // Find currently executing fiber, we need to write into it
-    hash_for_each_possible_rcu(p->fibers, src_f, fnext, src_fid){
-        if(src_f==NULL){
-            dbg("SwitchToFiber cannot find fiber %ld that was referenced as activated by thread %d\n",src_fid,pid);
-            return ERROR;    // src_f does not exist???
-       }
-       if(src_f->fid==src_fid) break;
+    src_f = get_fiber_by_id(src_fid, p);
+    if(!src_f){ // Currently running fiber does not exist???
+        dbg("SwitchToFiber cannot find fiber %ld that was referenced as activated by thread %d\n",src_fid,pid);
+        return ERROR;
     }
+    
     dbg("SwitchToFiber, found src_fiber %d has active_pid %d",src_f->fid,atomic_read(&(src_f->active_pid)));
         
     // Save current cpu context into current fiber and mark it as not running
