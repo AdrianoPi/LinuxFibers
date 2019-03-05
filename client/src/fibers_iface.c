@@ -36,8 +36,14 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
     struct fiber_args fargs;   
     fargs.user_fn   = (long) user_function;
     fargs.fn_params = param;
-     
-    fargs.stack_base = malloc(STACK_SIZE);
+    
+    // Set stack_base at a 16-memory-aligned address and zero it.
+    if (posix_memalign(&(fargs.stack_base), 16, STACK_SIZE)){
+        dbg("Could not get a memory-aligned stack base!\n"
+        return ERROR;
+    }
+    bzero(fargs.stack_base, STACK_SIZE);
+    
     fargs.stack_size = STACK_SIZE;
     
     printf("Create Fiber ioctl_param %ld, user_fn %ld\n",(long unsigned)&fargs,fargs.user_fn); 
