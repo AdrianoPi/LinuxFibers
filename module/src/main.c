@@ -19,6 +19,7 @@ static int __init ex0_init(void){
 }
 
 static void __exit ex0_exit(void){
+
     kernelModCleanup();
     destroy_driver();
     log("Goodbye from kernel space!\n");

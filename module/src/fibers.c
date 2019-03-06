@@ -70,7 +70,7 @@ DEFINE_SPINLOCK(processes_lock); // processes hashtable spinlock.(RW LOCK?)
 
 // get_x_by_id are auxiliary functions
 // If no matching entry is found, they return NULL
-struct process * get_process_by_id(pid_t tgid){
+inline struct process * get_process_by_id(pid_t tgid){
     
     struct process *p;
     
@@ -82,7 +82,7 @@ struct process * get_process_by_id(pid_t tgid){
     return p;
 }
 
-struct thread * get_thread_by_id(pid_t pid, struct process * p){
+inline struct thread * get_thread_by_id(pid_t pid, struct process * p){
     
     struct thread *t;
     
@@ -94,7 +94,7 @@ struct thread * get_thread_by_id(pid_t pid, struct process * p){
     return t;
 }
 
-struct fiber * get_fiber_by_id(pid_t fid, struct process * p){
+inline struct fiber * get_fiber_by_id(pid_t fid, struct process * p){
     
     struct fiber *f;
     
