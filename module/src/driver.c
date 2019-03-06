@@ -11,16 +11,19 @@
 
 long int device_ioctl(
     struct file *file,
-    unsigned int ioctl_num,    /* The number of the ioctl */
-    unsigned long ioctl_param) /* The parameter to it */
+    unsigned int ioctl_num, 
+    unsigned long ioctl_param) 
 {
     struct fiber_args fargs;
 
     switch (ioctl_num) {
+        
         case IOCTL_ConvertThreadToFiber:
             return kernelConvertThreadToFiber(current->tgid,current->pid);
             break;
+        
         case IOCTL_CreateFiber:
+            
             if(!access_ok(VERIFY_READ,ioctl_param,sizeof(struct fiber_args))){
                 log("CreateFiber, invalid ioctl_param\n");
                 return ERROR;
@@ -31,8 +34,6 @@ long int device_ioctl(
                 return ERROR;
             }
  
-            dbg("******[IOCTL]param %ld and user function:%ld",ioctl_param,fargs.user_fn);
-                        
             return  kernelCreateFiber(
                 fargs.user_fn,
                 fargs.fn_params,
@@ -42,6 +43,7 @@ long int device_ioctl(
                 fargs.stack_size);
 
             break;
+
         case IOCTL_SwitchToFiber:
             kernelSwitchToFiber(current->tgid,current->pid,(pid_t) ioctl_param );
             break;
@@ -55,12 +57,16 @@ long int device_ioctl(
 static int device_open(struct inode *inode, 
                        struct file *file)
 {
+    if(!try_module_get(THIS_MODULE)) return ERROR;
     return SUCCESS;
 }
 
 static int device_release(struct inode *inode, 
                           struct file *file)
-{
+{  
+    kernelProcCleanup(current->tgid);
+
+    module_put(THIS_MODULE); 
     return SUCCESS;
 }
 
@@ -93,6 +99,13 @@ static struct file_operations Fops = {
 
 struct class *cl;
 
+char * class_devnode(struct device * dev, umode_t *m){
+    if (m) *m=0666;
+    return kasprintf(GFP_KERNEL,"%s",dev_name(dev));
+}
+
+
+
 int init_driver(void)
 {
     int ret;
@@ -115,7 +128,8 @@ int init_driver(void)
         log("Error creating class.");
         unregister_chrdev(MAJOR_NUM,DRIVER_NAME);
         return ERROR;
-    }
+    }  
+    cl->devnode=class_devnode;
 
     log("Creating /sys/class device.\n");
     pret = (void*)device_create(

@@ -1,7 +1,7 @@
 #include "common.h"
 #include "driver.h"
 #include "fibers_driver.h"
-
+#include "fibers.h"
 
 MODULE_LICENSE("GPL"); 
 MODULE_AUTHOR("AdrianoPi & Be-P");
@@ -19,7 +19,7 @@ static int __init ex0_init(void){
 }
 
 static void __exit ex0_exit(void){
-
+    kernelModCleanup();
     destroy_driver();
     log("Goodbye from kernel space!\n");
    

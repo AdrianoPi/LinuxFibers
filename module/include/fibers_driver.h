@@ -6,9 +6,6 @@
 
 
 struct fiber_args{
-
-        
-   
     void *stack_base;
     long  stack_size;
      

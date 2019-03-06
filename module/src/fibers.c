@@ -10,9 +10,6 @@
 #include <asm/thread_info.h>
 #include <linux/sched/task_stack.h>
 
-//#define task_stack_page(tsk)    ((void *)(tsk))
-
-// @TODO UPON `return ERROR` ADD LOG()
 
 // Mantains the cpu context associated with the workflow of this fiber.
 struct fiber{
@@ -26,7 +23,7 @@ struct fiber{
     unsigned long   flags;        // Needed to correctly restore interrupts
     */ 
 
-    struct pt_regs  pt_regs;         // These two fields will store the state
+    struct pt_regs  pt_regs;      // These two fields will store the state
     struct fpu      fpu;          // of the CPU of this fiber
 
     void           *stack_base;   // Base of allocated stack, to be freed
@@ -270,7 +267,6 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
         dbg("Error SwitchToFiber, fiber %d not created yet\n",fid);
         return ERROR;    // Target fiber does not exist
     }
-    
     dbg("SwitchToFiber, found dest_fiber %d has active_pid %d\n",fid,atomic_read(&(dst_f->active_pid)));
 
     // Check if target fiber is already in use and book it for the new use
@@ -280,14 +276,12 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     }
     dbg("Booked dst_fiber %d with active_pid %d",dst_f->fid, atomic_read(&(dst_f->active_pid)));
     
-    dbg("Searching src_fiber %ld into p->[%p]",src_fid,p->fibers); 
     // Find currently executing fiber, we need to write into it
     src_f = get_fiber_by_id(src_fid, p);
     if(!src_f){ // Currently running fiber does not exist???
         dbg("SwitchToFiber cannot find fiber %ld that was referenced as activated by thread %d\n",src_fid,pid);
         return ERROR;
     }
-    
     dbg("SwitchToFiber, found src_fiber %d has active_pid %d",src_f->fid,atomic_read(&(src_f->active_pid)));
         
     // Save current cpu context into current fiber and mark it as not running
@@ -314,4 +308,21 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     atomic_set(&(t->active_fid),dst_f->fid);
     
     return SUCCESS;
+}
+
+// @TODO IMPLEMENT CLEANUP FUNCTION
+void kernelProcCleanup(pid_t tgid){ 
+
+    struct process *p;
+
+    p= get_process_by_id(tgid);
+
+
+    // Walk into p->threads and free all data
+    // Walk into p->fibers and free all data
+
+}
+
+void kernelModCleanup(){
+    // Walk into processes and free all data
 }

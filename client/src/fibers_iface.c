@@ -10,6 +10,8 @@
 
 #define STACK_SIZE 1024
 
+#define log(fmt,...) printf( fmt , ##__VA_ARGS__)
+
 
 // This is the file descriptor needed to issue ioctls,
 // It isn't efficient to reopen it f.e. ioctl and it is 
@@ -21,12 +23,12 @@ pid_t ConvertThreadToFiber(){
 
     
     fd = open("/dev/"DRIVER_NAME,0,O_RDONLY);
-    printf("[Fibers Interface] opened %s, received fd %d.\n","/dev/"DRIVER_NAME,fd);
+    log("[Fibers Interface] opened %s, fd %d.\n","/dev/"DRIVER_NAME,fd);
     
     ret = ioctl(fd,IOCTL_ConvertThreadToFiber,0);
-    printf("[Fibers Interface] ret:%d.\n",ret);
+    log("[Fibers Interface] ret:%d.\n",ret);
 
-    if (ret ==-1 ) perror("[Fibers Interface] ioctl");
+    if (ret ==-1 ) perror("[Fibers Interface] ConvertThreadToFiber");
 
     return ret;
 }
@@ -34,11 +36,16 @@ pid_t ConvertThreadToFiber(){
 
 pid_t CreateFiber(void (*user_function)(void*),  void * param){
     
-    // @TODO ADD LIST OF MALLOCed MEM AREAS FOR CLEANUP PURPOSES
+
     struct fiber_args fargs;   
     fargs.user_fn   = (long) user_function;
     fargs.fn_params = param;
+    fargs.stack_size = STACK_SIZE;
     
+    // @TODO ADD LIST OF MALLOCed MEM AREAS FOR CLEANUP PURPOSES
+    // Otherwise processes with a lot of fibers will end up spraying 
+    // the heap.
+    //
     // Set stack_base at a 16-memory-aligned address and zero it.
     if (posix_memalign(&(fargs.stack_base), 16, STACK_SIZE)){
         perror("[Fibers Interface] Could not get a memory-aligned stack base!\n");
@@ -46,20 +53,26 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
     }
     bzero(fargs.stack_base, STACK_SIZE);
     
-    fargs.stack_size = STACK_SIZE;
     
-    printf("[Fibers Interface] Create Fiber ioctl_param %ld, user_fn %ld\n",(long unsigned)&fargs,fargs.user_fn); 
+    log("[Fibers Interface] CreateFiber ioctl_param %ld, user_fn %ld\n",
+           (long unsigned)&fargs,
+           fargs.user_fn); 
+
     int ret = ioctl(fd,IOCTL_CreateFiber, (long unsigned ) &fargs );
-    if (ret ==-1 ) perror("[Fibers Interface] ioctl");
-    else printf("[Fibers Interface] Ok.\n");
+    if (ret ==-1 ) perror("[Fibers Interface] CreateFiber ioctl");
+    else           log("[Fibers Interface] CreateFiber Ok.\n");
+    
     return ret;
+
 }
 
-long SwitchToFiber(pid_t fiber_id){
-    int ret = ioctl(fd,IOCTL_SwitchToFiber,(long unsigned int)fiber_id);
-    if (ret ==-1 ) perror("[Fibers Interface] ioctl\n");
-    else printf("[Fibers Interface] Ok.\n");
+pid_t SwitchToFiber(pid_t fiber_id){
+    log("[Fibers Interface] SwitchToFiber %d\n", fiber_id); 
 
+    int ret = ioctl(fd,IOCTL_SwitchToFiber,(long unsigned int)fiber_id);
+    if (ret ==-1 ) perror("[Fibers Interface] SwitchToFiber ioctl\n");
+    else           log("[Fibers Interface] Ok.\n");
+    return ret;
 }
 
 
