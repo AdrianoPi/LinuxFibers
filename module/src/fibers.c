@@ -297,6 +297,8 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     // ****************************************
     // @TODO fpu__save(&f_current->fpu);
     // ***************************************
+    
+    // Disengage old fiber
     atomic_set(&(src_f->active_pid),0);
     
     dbg("SwitchToFiber, Saved CPU ctx into src_fiber %d and active_pid to 0\n",src_f->fid);
@@ -308,5 +310,8 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     // ***************************************
     dbg("SwitchToFiber, Loaded into CPU ctx the context that was into dst_fiber %d\n",dst_f->fid);
     dbg("SwitchToFiber, Loaded RIP: %ld\n",dst_f->pt_regs.ip);
+    
+    atomic_set(&(t->active_fid),dst_f->fid);
+    
     return SUCCESS;
 }

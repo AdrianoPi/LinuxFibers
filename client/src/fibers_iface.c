@@ -21,12 +21,12 @@ pid_t ConvertThreadToFiber(){
 
     
     fd = open("/dev/"DRIVER_NAME,0,O_RDONLY);
-    printf("opened %s, received fd %d.\n","/dev/"DRIVER_NAME,fd);
+    printf("[Fibers Interface] opened %s, received fd %d.\n","/dev/"DRIVER_NAME,fd);
     
     ret = ioctl(fd,IOCTL_ConvertThreadToFiber,0);
-    printf("ret:%d.\n",ret);
+    printf("[Fibers Interface] ret:%d.\n",ret);
 
-    if (ret ==-1 ) perror("ioctl");
+    if (ret ==-1 ) perror("[Fibers Interface] ioctl");
 
     return ret;
 }
@@ -41,24 +41,24 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
     
     // Set stack_base at a 16-memory-aligned address and zero it.
     if (posix_memalign(&(fargs.stack_base), 16, STACK_SIZE)){
-        perror("Could not get a memory-aligned stack base!\n");
+        perror("[Fibers Interface] Could not get a memory-aligned stack base!\n");
         return -1;
     }
     bzero(fargs.stack_base, STACK_SIZE);
     
     fargs.stack_size = STACK_SIZE;
     
-    printf("Create Fiber ioctl_param %ld, user_fn %ld\n",(long unsigned)&fargs,fargs.user_fn); 
+    printf("[Fibers Interface] Create Fiber ioctl_param %ld, user_fn %ld\n",(long unsigned)&fargs,fargs.user_fn); 
     int ret = ioctl(fd,IOCTL_CreateFiber, (long unsigned ) &fargs );
-    if (ret ==-1 ) perror("ioctl");
-    else printf("Ok.");
+    if (ret ==-1 ) perror("[Fibers Interface] ioctl");
+    else printf("[Fibers Interface] Ok.\n");
     return ret;
 }
 
 long SwitchToFiber(pid_t fiber_id){
     int ret = ioctl(fd,IOCTL_SwitchToFiber,(long unsigned int)fiber_id);
-    if (ret ==-1 ) perror("ioctl\n");
-    else printf("Ok.\n");
+    if (ret ==-1 ) perror("[Fibers Interface] ioctl\n");
+    else printf("[Fibers Interface] Ok.\n");
 
 }
 
