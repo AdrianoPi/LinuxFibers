@@ -15,11 +15,13 @@ long int device_ioctl(
     unsigned long ioctl_param) 
 {
     struct fiber_args fargs;
+    
+    struct fls_args flsargs;
 
     switch (ioctl_num) {
         
         case IOCTL_ConvertThreadToFiber:
-            return kernelConvertThreadToFiber(current->tgid,current->pid);
+            return kernelConvertThreadToFiber(current->tgid, current->pid);
             break;
         
         case IOCTL_CreateFiber:
@@ -45,9 +47,36 @@ long int device_ioctl(
             break;
 
         case IOCTL_SwitchToFiber:
-            kernelSwitchToFiber(current->tgid,current->pid,(pid_t) ioctl_param );
+            return kernelSwitchToFiber(current->tgid, current->pid, (pid_t) ioctl_param );
             break;
+            
+            
+        case IOCTL_FlsAlloc:
+            return kernelFlsAlloc(current->tgid, current->pid);
+            break;
+            
+        case IOCTL_FlsFree:
+            return kernelFlsFree(current->tgid, current->pid, (long) ioctl_param );
+            break;
+            
+        case IOCTL_FlsGetValue:
+            return kernelFlsGetValue(current->tgid, current->pid, (long) ioctl_param );
+            break;
+            
+        case IOCTL_FlsSetValue:
+        
+            if(!access_ok(VERIFY_READ,ioctl_param,sizeof(struct fls_args))){
+                log("FlsSetValue, invalid ioctl_param\n");
+                return ERROR;
+            }
 
+            if(copy_from_user(&flsargs, (void*) ioctl_param, sizeof(struct fls_args))){
+                log("FlsSetValue, error Unable to copy_from_user");
+                return ERROR;
+            }
+            
+            return kernelFlsSetValue(current->tgid, current->pid, flsargs.index, flsargs.value );
+            break;
   }
 
   return SUCCESS;

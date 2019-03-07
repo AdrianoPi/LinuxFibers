@@ -33,6 +33,10 @@ struct fiber{
     // These attributes are needed to add struct fiber into an hashtable    
     pid_t             fid;   // key for hashtable
     struct hlist_node fnext; // Needed to be added into an hastable
+    
+    // @TODO implement FLS-related fields
+    //long fls[fls_size];
+    //someting to keep track of used storage. Linkedlist or bitmap
 
 };
 
@@ -309,6 +313,24 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     
     return SUCCESS;
 }
+
+
+long kernelFlsAlloc(pid_t tgid, pid_t pid){
+    return 0l;
+}
+
+int kernelFlsFree(pid_t tgid, pid_t pid, long index){
+    return 0;
+}
+
+long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
+    return 0ll;
+}
+
+int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
+    return 0;
+}
+
 
 // @TODO IMPLEMENT CLEANUP FUNCTION
 void kernelProcCleanup(pid_t tgid){ 

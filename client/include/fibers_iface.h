@@ -15,10 +15,19 @@ pid_t CreateFiber(void (*user_func)(void*), void *user_param );
 // @fiber_id: id of the Fiber that we want to schedule
 pid_t SwitchToFiber(pid_t fiber_id);
 
-/*
-long FlsAlloc();
-bool FlsFree(long);
-long long FlsGetValue(long);
-void FlsSetValue(long long, long);
-*/
 
+// Allocates one Fiber Local Storage entry
+long FlsAlloc();
+
+// Frees a Fiber Local Storage entry
+// @index: index identifier of the entry to be freed
+int FlsFree(long index);
+
+// Gets value of a Fiber Local Storage entry
+// @index: index identifier of the entry to be read
+long long FlsGetValue(long index);
+
+// Sets value of a Fiber Local Storage entry
+// @index: index identifier of the entry to be written
+// @value: value to be written
+int FlsSetValue(long index, long long value);

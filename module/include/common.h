@@ -12,8 +12,8 @@
 #define SUCCESS 0
 #define ERROR  -1
 
-#define DEBUG                // Undefine to decrease verbosity
 
+#define DEBUG                // Undefine to decrease verbosity
 
 #ifdef DEBUG
 # define dbg(fmt,...) \
