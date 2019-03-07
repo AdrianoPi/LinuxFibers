@@ -12,7 +12,7 @@ MODULE_VERSION("0.1");
 static int __init ex0_init(void){
 	
     log("Hello from kernel space!\n");
-    DEBUG_PRINT("DEBUG is ACTIVE");
+    dbg("DEBUG is ACTIVE");
     init_driver();
     
 	return SUCCESS;

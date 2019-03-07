@@ -21,5 +21,11 @@ struct fiber_args{
 #define IOCTL_CreateFiber           _IOW(MAJOR_NUM, 1, struct fiber_args * ) 
 #define IOCTL_SwitchToFiber         _IOW(MAJOR_NUM, 2, long )
 
+#define IOCTL_FlsAlloc              _IOR(MAJOR_NUM, 3)
+#define IOCTL_FlsFree               _IOW(MAJOR_NUM, 4, long)
+#define IOCTL_FlsGetValue           _IOR(MAJOR_NUM, 5, long)
+#define IOCTL_FlsSetValue           _IOW(MAJOR_NUM, 6, long)
+
+
 #endif
 

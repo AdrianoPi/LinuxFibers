@@ -16,13 +16,6 @@
 
 
 #ifdef DEBUG
-# define DEBUG_PRINT(fmt,...) \
-    printk(KERN_INFO "\e[1;33mFIBERS - dbg\e[0m: " fmt , ##__VA_ARGS__)
-#else
-# define DEBUG_PRINT(fmt)
-#endif
-
-#ifdef DEBUG
 # define dbg(fmt,...) \
     printk(KERN_INFO "\e[1;33mFIBERS - dbg\e[0m: " fmt , ##__VA_ARGS__)
 #else
