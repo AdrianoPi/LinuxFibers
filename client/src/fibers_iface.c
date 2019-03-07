@@ -76,10 +76,10 @@ pid_t SwitchToFiber(pid_t fiber_id){
 }
 
 
-long FlsAlloc(){
+unsigned long FlsAlloc(){
     log("[Fibers Interface] FlsAlloc\n");
     
-    long ret = ioctl(fd, IOCTL_FlsAlloc, 0);
+    unsigned long ret = ioctl(fd, IOCTL_FlsAlloc, 0);
     
     if (ret ==-1 ) perror("[Fibers Interface] FlsAlloc ioctl\n");
     else           log("[Fibers Interface] Ok.\n");
@@ -87,9 +87,9 @@ long FlsAlloc(){
     return ret;
 }
 
-int FlsFree(long index){
+int FlsFree(unsigned long index){
     log("[Fibers Interface] FlsFree %ld\n", index);
-     
+    
     int ret = ioctl(fd, IOCTL_FlsFree, index);
     
     if (ret ==-1 ) perror("[Fibers Interface] FlsFree ioctl\n");
@@ -98,7 +98,7 @@ int FlsFree(long index){
     return ret;
 }
 
-long long FlsGetValue(long index){
+long long FlsGetValue(unsigned long index){
     log("[Fibers Interface] FlsGetValue %d\n", index);
     
     long long ret = ioctl(fd, IOCTL_FlsGetValue, index);
@@ -109,7 +109,7 @@ long long FlsGetValue(long index){
     return ret;
 }
 
-int FlsSetValue(long index, long long value){
+int FlsSetValue(unsigned long index, long long value){
     
     struct fls_args flsargs;
     

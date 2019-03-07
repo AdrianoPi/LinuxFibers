@@ -49,8 +49,8 @@ long int device_ioctl(
         case IOCTL_SwitchToFiber:
             return kernelSwitchToFiber(current->tgid, current->pid, (pid_t) ioctl_param );
             break;
-            
-            
+        
+        
         case IOCTL_FlsAlloc:
             return kernelFlsAlloc(current->tgid, current->pid);
             break;
@@ -65,7 +65,7 @@ long int device_ioctl(
             
         case IOCTL_FlsSetValue:
         
-            if(!access_ok(VERIFY_READ,ioctl_param,sizeof(struct fls_args))){
+            if(!access_ok(VERIFY_READ, ioctl_param, sizeof(struct fls_args))){
                 log("FlsSetValue, invalid ioctl_param\n");
                 return ERROR;
             }

@@ -17,17 +17,17 @@ pid_t SwitchToFiber(pid_t fiber_id);
 
 
 // Allocates one Fiber Local Storage entry
-long FlsAlloc();
+unsigned long FlsAlloc();
 
 // Frees a Fiber Local Storage entry
 // @index: index identifier of the entry to be freed
-int FlsFree(long index);
+int FlsFree(unsigned long index);
 
 // Gets value of a Fiber Local Storage entry
 // @index: index identifier of the entry to be read
-long long FlsGetValue(long index);
+long long FlsGetValue(unsigned long index);
 
 // Sets value of a Fiber Local Storage entry
 // @index: index identifier of the entry to be written
 // @value: value to be written
-int FlsSetValue(long index, long long value);
+int FlsSetValue(unsigned long index, long long value);

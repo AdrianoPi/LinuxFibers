@@ -9,7 +9,17 @@
 #include <linux/sched.h>
 #include <asm/thread_info.h>
 #include <linux/sched/task_stack.h>
+#include <linux/types.h>
 
+#define FLS_SIZE 4096
+
+// To keep track of free slots in FLS
+struct fls_free_ll{
+    
+    unsigned long index;
+    
+    struct fls_free_ll * next;
+};
 
 // Mantains the cpu context associated with the workflow of this fiber.
 struct fiber{
@@ -35,9 +45,13 @@ struct fiber{
     struct hlist_node fnext; // Needed to be added into an hastable
     
     // @TODO implement FLS-related fields
-    //long fls[fls_size];
-    //someting to keep track of used storage. Linkedlist or bitmap
-
+    long long fls[FLS_SIZE];
+    // Bitmap to check for used slots
+    DECLARE_BITMAP(fls_free_bmp, FLS_SIZE);
+    // LinkedList to keep slots inbetween
+    struct fls_free_ll * free_ll;
+    
+    
 };
 
 // Mantains the responsibility of fibers for each process
@@ -67,6 +81,7 @@ struct thread{
     pid_t pid;                // key for hashtable
     struct hlist_node tnext;  // Needed to be added into an hastable
 };
+
 
 DEFINE_HASHTABLE(processes,6);
 DEFINE_SPINLOCK(processes_lock); // processes hashtable spinlock.(RW LOCK?)
@@ -315,19 +330,137 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
 }
 
 
-long kernelFlsAlloc(pid_t tgid, pid_t pid){
-    return 0l;
+
+unsigned long kernelFlsAlloc(pid_t tgid, pid_t pid){
+    
+    pid_t fid;
+    
+    struct process *p;
+    struct thread  *t;
+    struct fiber   *f;
+    struct fls_free_ll * ll_old;
+    unsigned long index;
+    
+    // Check if struct process exists otherwise return error
+    p = get_process_by_id(tgid);
+    if(!p){
+        dbg("Error FlsAlloc, process %d has no fibers yet.\n",tgid);
+        return ERROR;   // In the current process no thread has
+                        // been converted to fiber yet
+    }
+    
+    // Check if current thread has been converted to fiber otherwise error
+    t = get_thread_by_id(pid, p);
+    if(!t){
+        dbg("Error FlsAlloc, thread %d still not in %d->threads\n",pid,tgid);
+        return ERROR;    // Calling thread was not converted yet
+    }
+        
+    fid = atomic_read(&(t->active_fid));
+    
+    // Find currently executing fiber
+    f = get_fiber_by_id(fid, p);
+    if (!f){
+        dbg("Error FlsAlloc, currently executing fiber %d does not exist???\n",fid);
+        return ERROR;    // Target fiber does not exist
+    }
+    
+    // Check if fiber already has used FLS
+    if(f->free_ll==NULL){
+        // Check if last bit is set. If it is, fls is full
+        if(test_bit(FLS_SIZE-1, f->fls_free_bmp)){
+            dbg("Error FlsAlloc, no more space is available for fiber %d in process %d\n", fid, tgid);
+            return ERROR;
+        }
+        
+        // FLS was never used yet, set it up
+        // Setup LL for free entries
+        f->free_ll = vmalloc(sizeof(struct fls_free_ll));
+        f->free_ll->index = 1;
+        f->free_ll->next = NULL;
+        
+        // Setup bmp
+        set_bit(0, f->fls_free_bmp);
+        
+        index = 0;
+        
+    } else { // FLS was already used
+        
+        index = f->free_ll->index;
+        
+        // Mark slot as used in the bitmap
+        set_bit(index, f->fls_free_bmp);
+        
+        // We got the last slot. NULL the LL head and return the index
+        if(index == FLS_SIZE-1){
+            vfree(f->free_ll);
+            f->free_ll = NULL;
+            return index;
+        }
+        
+        // Contiguous free memory is pointed only at its start
+        // We need to check if the free zone continues or we need the next
+        if(!test_bit(index+1, f->fls_free_bmp)) f->free_ll->index = index+1;
+        else{
+            ll_old = f->free_ll;
+            f->free_ll = f->free_ll->next;
+            vfree(ll_old);
+        }
+    
+    }
+    
+    return index;
 }
 
-int kernelFlsFree(pid_t tgid, pid_t pid, long index){
-    return 0;
+int kernelFlsFree(pid_t tgid, pid_t pid, unsigned long index){
+    // IMPORTANT: Test bits before and after to mantain LL consistency
+    pid_t fid;
+    
+    struct process *p;
+    struct thread  *t;
+    struct fiber   *f;
+    struct fls_free_ll * ll_old;
+    unsigned long index;
+    
+    if(index>=FLS_SIZE){
+        dbg("Error FlsFree, tried freeing an index out of the FLS memory range");
+        return ERROR;
+    }
+    
+    // Check if struct process exists otherwise return error
+    p = get_process_by_id(tgid);
+    if(!p){
+        dbg("Error FlsFree, process %d has no fibers yet.\n",tgid);
+        return ERROR;   // In the current process no thread has
+                        // been converted to fiber yet
+    }
+    
+    // Check if current thread has been converted to fiber otherwise error
+    t = get_thread_by_id(pid, p);
+    if(!t){
+        dbg("Error FlsFree, thread %d still not in %d->threads\n",pid,tgid);
+        return ERROR;    // Calling thread was not converted yet
+    }
+        
+    fid = atomic_read(&(t->active_fid));
+    
+    // Find currently executing fiber
+    f = get_fiber_by_id(fid, p);
+    if (!f){
+        dbg("Error FlsFree, currently executing fiber %d does not exist???\n",fid);
+        return ERROR;    // Target fiber does not exist
+    }
+    
+    clear_bit(index, f->fls_free_bmp);
+        
+    return SUCCESS;
 }
 
-long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
+long long kernelFlsGetValue(pid_t tgid, pid_t pid, unsigned long index){
     return 0ll;
 }
 
-int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
+int kernelFlsSetValue(pid_t tgid, pid_t pid, unsigned long index, long long value){
     return 0;
 }
 
