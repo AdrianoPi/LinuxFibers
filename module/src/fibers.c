@@ -47,7 +47,7 @@ struct fiber{
     // @TODO implement FLS-related fields
     long long fls[FLS_SIZE];
     // Bitmap to check for used slots
-    DECLARE_BITMAP(fls_free_bmp, FLS_SIZE);
+    DECLARE_BITMAP(fls_used_bmp, FLS_SIZE);
     
     // LinkedList to keep slots inbetween
     struct fls_free_ll * free_ll;
@@ -371,7 +371,7 @@ unsigned long kernelFlsAlloc(pid_t tgid, pid_t pid){
     // Check if fiber already has used FLS
     if(f->free_ll==NULL){
         // Check if last bit is set. If it is, fls is full
-        if(test_bit(FLS_SIZE-1, f->fls_free_bmp)){
+        if(test_bit(FLS_SIZE-1, f->fls_used_bmp)){
             dbg("Error FlsAlloc, no more space is available for fiber %d in process %d\n", fid, tgid);
             return ERROR;
         }
@@ -385,7 +385,7 @@ unsigned long kernelFlsAlloc(pid_t tgid, pid_t pid){
         set_bit(1, f->fls_pointed_bmp);
         
         // Setup bmp
-        set_bit(0, f->fls_free_bmp);
+        set_bit(0, f->fls_used_bmp);
         
         
         index = 0;
@@ -395,7 +395,7 @@ unsigned long kernelFlsAlloc(pid_t tgid, pid_t pid){
         index = f->free_ll->index;
         
         // Mark slot as used in the bitmap
-        set_bit(index, f->fls_free_bmp);
+        set_bit(index, f->fls_used_bmp);
         
         // Clear bit in pointed bmp
         // Slot will not be pointed anymore in any case
@@ -412,7 +412,7 @@ unsigned long kernelFlsAlloc(pid_t tgid, pid_t pid){
         // pointed by another LL node
         // AND
         // check if the free zone continues or we need the next pointer
-        if(!test_bit(index+1, f->fls_pointed_bmp) && !test_bit(index+1, f->fls_free_bmp)){
+        if(!test_bit(index+1, f->fls_pointed_bmp) && !test_bit(index+1, f->fls_used_bmp)){
             
             f->free_ll->index = index+1;
             set_bit(index+1, f->fls_pointed_bmp);
@@ -468,10 +468,10 @@ int kernelFlsFree(pid_t tgid, pid_t pid, unsigned long index){
         return ERROR;    // Target fiber does not exist
     }
     
-    clear_bit(index, f->fls_free_bmp);
+    clear_bit(index, f->fls_used_bmp);
     
     // Freed bit does not follow a free area
-    if(!(index > 0 && !test_bit(index-1, f->fls_free_bmp))){
+    if(!(index > 0 && !test_bit(index-1, f->fls_used_bmp))){
         
         // Create LL node for this new free area
         // Put new node at start of LL chain
@@ -483,28 +483,11 @@ int kernelFlsFree(pid_t tgid, pid_t pid, unsigned long index){
         // Bit at index index is now pointed by a LL element
         set_bit(index, f->fls_pointed_bmp);
         
-        /*
-        // If next bit is not set, then it was pointed by a LL element
-        if(index < FLS_SIZE-1 && !test_bit(index+1, f->fls_free_bmp)){
-        
-            // Free that LL element as it is not needed anymore
-            // Problem: we need to find it. Might be costly
-        
-        }
-        */
-        
-    } 
-    /*  
-    else { // The bit we cleared follows a free area
-        
-        // We don't need to do anything, the bit is reachable through the
-        // LL entry pointing to the preceding free area
-        
-        // We don't care about next bit, because if it were free, then it
-        // is pointed by a LL node and thus reachable, if not, don't care
     }
-    */
-        
+    
+    // If freed bit is preceeded by a free area, no action is needed, as
+    // it will be reached through the LL node pointing to preceding area
+    
     return SUCCESS;
 }
 
