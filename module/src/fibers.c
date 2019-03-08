@@ -421,6 +421,7 @@ int kernelFlsFree(pid_t tgid, pid_t pid, unsigned long index){
     struct fiber   *f;
     struct fls_free_ll * ll_old;
     unsigned long index;
+    unsigned long prevfree;
     
     if(index>=FLS_SIZE){
         dbg("Error FlsFree, tried freeing an index out of the FLS memory range");
@@ -452,6 +453,35 @@ int kernelFlsFree(pid_t tgid, pid_t pid, unsigned long index){
     }
     
     clear_bit(index, f->fls_free_bmp);
+    
+    // The bit we cleared follows a free area
+    if(index > 0 && !test_bit(index-1, f->fls_free_bmp)){
+        
+        // If next bit is free, then it was pointed by a LL element
+        if(index < FLS_SIZE-1 && !test_bit(index+1, f->fls_free_bmp)){
+        
+            // Free that LL element as it is not needed anymore
+            // Problem: we need to find it. Might be costly
+        
+        }
+        
+        // Next bit was not set, nothing to be done
+        
+    } else { // Freed bit does not follow a free area
+        // Need to traverse LL and find node pointing to previous free zone
+        // Do we need to? Can't we just put our node at the start of the chain?
+        // This means that when we lookup nodes we cannot exploit ordering
+        
+        // Create LL node for this new free area
+        
+        // If next bit is not set, then it was pointed by a LL element
+        if(index < FLS_SIZE-1 && !test_bit(index+1, f->fls_free_bmp)){
+        
+            // Free that LL element as it is not needed anymore
+            // Problem: we need to find it. Might be costly
+        
+        }
+    }
         
     return SUCCESS;
 }
