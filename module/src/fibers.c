@@ -16,7 +16,7 @@
 // To keep track of free slots in FLS
 struct fls_free_ll{
     
-    unsigned long index;
+    long index;
     
     struct fls_free_ll * next;
 };
@@ -344,7 +344,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
 
 
 
-unsigned long kernelFlsAlloc(pid_t tgid, pid_t pid){
+long kernelFlsAlloc(pid_t tgid, pid_t pid){
     
     pid_t fid;
     
@@ -352,7 +352,7 @@ unsigned long kernelFlsAlloc(pid_t tgid, pid_t pid){
     struct thread  *t;
     struct fiber   *f;
     struct fls_free_ll * ll_old;
-    unsigned long index;
+    long index;
     
     // Check if struct process exists otherwise return error
     p = get_process_by_id(tgid);
@@ -441,7 +441,7 @@ unsigned long kernelFlsAlloc(pid_t tgid, pid_t pid){
     return index;
 }
 
-int kernelFlsFree(pid_t tgid, pid_t pid, unsigned long index){
+int kernelFlsFree(pid_t tgid, pid_t pid, long index){
 
     pid_t fid;
     
@@ -450,7 +450,10 @@ int kernelFlsFree(pid_t tgid, pid_t pid, unsigned long index){
     struct fiber   *f;
     struct fls_free_ll * ll_new;
     
-    if(index>=FLS_SIZE){
+    dbg("FlsFree, thread %d in process %d wants to free index %ld", tgid, pid, index);
+    
+    
+    if(index>=FLS_SIZE || index < 0){
         dbg("Error FlsFree, tried freeing an index out of the FLS memory range");
         return ERROR;
     }
@@ -502,7 +505,7 @@ int kernelFlsFree(pid_t tgid, pid_t pid, unsigned long index){
     return SUCCESS;
 }
 
-long long kernelFlsGetValue(pid_t tgid, pid_t pid, unsigned long index){
+long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
     
     pid_t fid;
     
@@ -510,7 +513,7 @@ long long kernelFlsGetValue(pid_t tgid, pid_t pid, unsigned long index){
     struct thread  *t;
     struct fiber   *f;
     
-    if(index>=FLS_SIZE){
+    if(index>=FLS_SIZE || index < 0){
         dbg("Error FlsGetValue, tried reading an index out of the FLS memory range");
         return ERROR;
     }
@@ -548,7 +551,7 @@ long long kernelFlsGetValue(pid_t tgid, pid_t pid, unsigned long index){
     return f->fls[index];
 }
 
-int kernelFlsSetValue(pid_t tgid, pid_t pid, unsigned long index, long long value){
+int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
     
     pid_t fid;
     
@@ -556,7 +559,7 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, unsigned long index, long long valu
     struct thread  *t;
     struct fiber   *f;
     
-    if(index>=FLS_SIZE){
+    if(index>=FLS_SIZE || index < 0){
         dbg("Error FlsSetValue, tried writing to an index out of the FLS memory range");
         return ERROR;
     }

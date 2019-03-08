@@ -1,7 +1,11 @@
 #include "fibers_iface.h"
+#include "tests.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
+#define SUCCESS     0
+#define ERROR       -1
 
 // We will test Fibers with three instances
 int fid0=0;
@@ -11,16 +15,18 @@ int fid2=0;
 // This will be the function of the Fibers
 void fiber_fn( void * p ){
     while(1){
-        printf("[FIBER-%ld] I'm an alive.\n",(long int)p);  
+        printf("[FIBER-%ld] I'm an alive.\n",(long int)p);
         SwitchToFiber(fid0);
     }
 }
 
 int main(){
+    int ret;
+    long index;
     
     // Convert the main thread to a Fiber
     fid0 = ConvertThreadToFiber();
-    
+        
     // Create another fiber fiber0
     printf("Creating fiber with RIP:%p\n",fiber_fn);
     fid1  = CreateFiber(fiber_fn, (void *)1);
