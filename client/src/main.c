@@ -24,9 +24,17 @@ int main(){
     int ret;
     long index;
     
+    flsAllocSetGetFree();
+    
     // Convert the main thread to a Fiber
     fid0 = ConvertThreadToFiber();
-        
+    
+    //FlsAlloc_test_01();
+    
+    //FlsFree(50);
+    
+    flsAllocSetGetFree();
+    
     // Create another fiber fiber0
     printf("Creating fiber with RIP:%p\n",fiber_fn);
     fid1  = CreateFiber(fiber_fn, (void *)1);

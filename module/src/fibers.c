@@ -354,10 +354,12 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
     struct fls_free_ll * ll_old;
     long index;
     
+    dbg("FlsAlloc, process %d thread %d\n", tgid, pid);
+    
     // Check if struct process exists otherwise return error
     p = get_process_by_id(tgid);
     if(!p){
-        dbg("Error FlsAlloc, process %d has no fibers yet.\n",tgid);
+        dbg("Error FlsAlloc, [%d->%d] process %d has no fibers yet.\n", tgid, pid, tgid);
         return ERROR;   // In the current process no thread has
                         // been converted to fiber yet
     }
@@ -365,7 +367,7 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
     // Check if current thread has been converted to fiber otherwise error
     t = get_thread_by_id(pid, p);
     if(!t){
-        dbg("Error FlsAlloc, thread %d still not in %d->threads\n",pid,tgid);
+        dbg("Error FlsAlloc, [%d->%d] thread %d still not in %d->threads\n", tgid, pid, pid, tgid);
         return ERROR;    // Calling thread was not converted yet
     }
         
@@ -374,26 +376,30 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
     // Find currently executing fiber
     f = get_fiber_by_id(fid, p);
     if (!f){
-        dbg("Error FlsAlloc, currently executing fiber %d does not exist???\n",fid);
+        dbg("Error FlsAlloc, [%d->%d->%d] currently executing fiber does not exist???\n", tgid, pid, fid);
         return ERROR;    // Target fiber does not exist
     }
     
     // Check if fiber already has used FLS
     if(!f->used_fls){
         
-        dbg("FlsAlloc, fiber %d in process %d had never used FLS, initializing\n", fid, tgid);
+        dbg("FlsAlloc, [%d->%d->%d] fiber had never used FLS, initializing\n", tgid, pid, fid);
         
         // FLS was never used yet, set it up
         // Setup LL for free entries
         f->free_ll = vmalloc(sizeof(struct fls_free_ll));
         f->free_ll->index = 1;
         f->free_ll->next = NULL;
+        
+        dbg("FlsAlloc, [%d->%d->%d] linked list set up\n", tgid, pid, fid);
+        
         // Bit 1 is pointed by LL - set bit in bitmap
         set_bit(1, f->fls_pointed_bmp);
         
         // Setup bmp
         set_bit(0, f->fls_used_bmp);
         
+        dbg("FlsAlloc, [%d->%d->%d] bitmaps set up\n", tgid, pid, fid);
         
         index = 0;
         
@@ -404,10 +410,12 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
                                  // pointer to free slot is found
                                  
         // -> FLS is full
-        dbg("Error FlsAlloc, no more space is available for fiber %d in process %d\n", fid, tgid);
+        dbg("Error FlsAlloc, [%d->%d->%d] no more space is available in FLS\n", tgid, pid, fid);
         return ERROR;
         
     } else { // FLS was already initialized
+        
+        dbg("FlsAlloc, [%d->%d->%d] fiber has space in FLS\n", tgid, pid, fid);
         
         index = f->free_ll->index;
         
@@ -418,6 +426,8 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
         // Slot will not be pointed anymore in any case
         clear_bit(index, f->fls_pointed_bmp);
         
+        dbg("FlsAlloc, [%d->%d->%d] got index, updated bitmaps\n", tgid, pid, fid);
+        
         // We need to check that the free bit is not followed by a zone
         // pointed by another LL node
         // AND
@@ -425,10 +435,14 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
         // => if next bit is not pointed and not used, increment index
         if(!test_bit(index+1, f->fls_pointed_bmp) && !test_bit(index+1, f->fls_used_bmp)){
             
+            dbg("FlsAlloc, [%d->%d->%d] the slot following the allocated one is free and not pointed by a node of linked list\n", tgid, pid, fid);
+            
             f->free_ll->index = index+1;
             set_bit(index+1, f->fls_pointed_bmp);
         
         } else { // Either free zone ends or another LL node points the next
+            
+            dbg("FlsAlloc, [%d->%d->%d] the slot following the allocated one is either used or pointed by a node of the linked list\n", tgid, pid, fid);
             
             ll_old = f->free_ll;
             f->free_ll = f->free_ll->next;
@@ -437,6 +451,8 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
         }
         
     }
+    
+    dbg("FlsAlloc, [%d->%d->%d] Done. Returning index %ld\n", tgid, pid, fid, index);
     
     return index;
 }
@@ -450,18 +466,18 @@ int kernelFlsFree(pid_t tgid, pid_t pid, long index){
     struct fiber   *f;
     struct fls_free_ll * ll_new;
     
-    dbg("FlsFree, thread %d in process %d wants to free index %ld", tgid, pid, index);
+    dbg("FlsFree, process %d thread %d\n", tgid, pid);
     
     
     if(index>=FLS_SIZE || index < 0){
-        dbg("Error FlsFree, tried freeing an index out of the FLS memory range");
+        dbg("Error FlsFree, [%d->%d] tried freeing index %ld out of the FLS memory range\n", tgid, pid, index);
         return ERROR;
     }
     
     // Check if struct process exists otherwise return error
     p = get_process_by_id(tgid);
     if(!p){
-        dbg("Error FlsFree, process %d has no fibers yet.\n",tgid);
+        dbg("Error FlsFree, [%d->%d] process %d has no fibers yet.\n", tgid, pid, tgid);
         return ERROR;   // In the current process no thread has
                         // been converted to fiber yet
     }
@@ -469,7 +485,7 @@ int kernelFlsFree(pid_t tgid, pid_t pid, long index){
     // Check if current thread has been converted to fiber otherwise error
     t = get_thread_by_id(pid, p);
     if(!t){
-        dbg("Error FlsFree, thread %d still not in %d->threads\n",pid,tgid);
+        dbg("Error FlsFree, [%d->%d] thread %d still not in %d->threads\n", tgid, pid, pid, tgid);
         return ERROR;    // Calling thread was not converted yet
     }
         
@@ -478,14 +494,17 @@ int kernelFlsFree(pid_t tgid, pid_t pid, long index){
     // Find currently executing fiber
     f = get_fiber_by_id(fid, p);
     if (!f){
-        dbg("Error FlsFree, currently executing fiber %d does not exist???\n",fid);
+        dbg("Error FlsFree, [%d->%d->%d] currently executing fiber does not exist???\n", tgid, pid, fid);
         return ERROR;    // Target fiber does not exist
     }
     
     clear_bit(index, f->fls_used_bmp);
+    dbg("FlsFree, [%d->%d->%d] usage flag for index %ld cleared\n", tgid, pid, fid, index);
     
     // Freed bit does not follow a free area
     if(!(index > 0 && !test_bit(index-1, f->fls_used_bmp))){
+        
+        dbg("FlsFree, [%d->%d->%d] cleared bit does not follow a free area, I point it with a linkedList node\n", tgid, pid, fid);
         
         // Create LL node for this new free area
         // Put new node at start of LL chain
@@ -494,6 +513,10 @@ int kernelFlsFree(pid_t tgid, pid_t pid, long index){
         ll_new->next = f->free_ll;
         f->free_ll = ll_new;
         
+        dbg("FlsFree, [%d->%d->%d] new head of the linkedList is at index: %ld\n", tgid, pid, fid, f->free_ll->index);
+        
+        dbg("FlsFree, [%d->%d->%d] next node points index: %ld\n", tgid, pid, fid, f->free_ll->next==NULL ? -1 : f->free_ll->next->index);
+        
         // Bit at index index is now pointed by a LL element
         set_bit(index, f->fls_pointed_bmp);
         
@@ -501,6 +524,8 @@ int kernelFlsFree(pid_t tgid, pid_t pid, long index){
     
     // If freed bit is preceeded by a free area, no action is needed, as
     // it will be reached through the LL node pointing to preceding area
+    
+    dbg("FlsFree, [%d->%d->%d] done!\n", tgid, pid, fid);
     
     return SUCCESS;
 }
@@ -513,15 +538,17 @@ long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
     struct thread  *t;
     struct fiber   *f;
     
+    dbg("FlsGetValue, process %d thread %d\n", tgid, pid);
+    
     if(index>=FLS_SIZE || index < 0){
-        dbg("Error FlsGetValue, tried reading an index out of the FLS memory range");
+        dbg("Error FlsGetValue, [%d->%d] tried reading index %ld out of the FLS memory range\n", tgid, pid, index);
         return ERROR;
     }
     
     // Check if struct process exists otherwise return error
     p = get_process_by_id(tgid);
     if(!p){
-        dbg("Error FlsGetValue, process %d has no fibers yet.\n",tgid);
+        dbg("Error FlsGetValue, [%d->%d] process %d has no fibers yet.\n", tgid, pid, tgid);
         return ERROR;   // In the current process no thread has
                         // been converted to fiber yet
     }
@@ -529,7 +556,7 @@ long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
     // Check if current thread has been converted to fiber otherwise error
     t = get_thread_by_id(pid, p);
     if(!t){
-        dbg("Error FlsGetValue, thread %d still not in %d->threads\n",pid,tgid);
+        dbg("Error FlsGetValue, [%d->%d] thread %d still not in %d->threads\n", tgid, pid, pid, tgid);
         return ERROR;    // Calling thread was not converted yet
     }
         
@@ -538,15 +565,17 @@ long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
     // Find currently executing fiber
     f = get_fiber_by_id(fid, p);
     if (!f){
-        dbg("Error FlsGetValue, currently executing fiber %d from process %d does not exist???\n",fid, tgid);
+        dbg("Error FlsGetValue, [%d->%d->%d] currently executing fiber does not exist???\n", tgid, pid, fid);
         return ERROR;    // Current fiber does not exist???
     }
     
     // Check if target entry exists
     if(!test_bit(index, f->fls_used_bmp)){
-        dbg("Error FlsGetValue, fid %d from process %d tried accessing a non malloc-ed entry\n",fid, tgid);
+        dbg("Error FlsGetValue, [%d->%d->%d] tried accessing a non malloc-ed entry\n", tgid, pid, fid);
         return ERROR;    // Target entry does not exist
     }
+    
+    dbg("FlsGetValue, [%d->%d->%d] read %lld\n", tgid, pid, fid, f->fls[index]);
     
     return f->fls[index];
 }
@@ -559,17 +588,17 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
     struct thread  *t;
     struct fiber   *f;
     
-    dbg("FlsSetValue, thread %d in process %d", pid, tgid);
+    dbg("FlsSetValue, process %d thread %d\n", tgid, pid);
     
     if(index>=FLS_SIZE || index < 0){
-        dbg("Error FlsSetValue, tried writing to an index out of the FLS memory range");
+        dbg("Error FlsSetValue, [%d->%d] tried writing to index %ld out of the FLS memory range\n", tgid, pid, index);
         return ERROR;
     }
     
     // Check if struct process exists otherwise return error
     p = get_process_by_id(tgid);
     if(!p){
-        dbg("Error FlsSetValue, process %d has no fibers yet.\n",tgid);
+        dbg("Error FlsSetValue, [%d->%d] process %d has no fibers yet.\n", tgid, pid, tgid);
         return ERROR;   // In the current process no thread has
                         // been converted to fiber yet
     }
@@ -577,7 +606,7 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
     // Check if current thread has been converted to fiber otherwise error
     t = get_thread_by_id(pid, p);
     if(!t){
-        dbg("Error FlsSetValue, thread %d still not in %d->threads\n",pid,tgid);
+        dbg("Error FlsSetValue, [%d->%d] thread %d still not in %d->threads\n", tgid, pid, pid, tgid);
         return ERROR;    // Calling thread was not converted yet
     }
         
@@ -586,20 +615,22 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
     // Find currently executing fiber
     f = get_fiber_by_id(fid, p);
     if (!f){
-        dbg("Error FlsSetValue, currently executing fiber %d from process %d does not exist???\n",fid, tgid);
+        dbg("Error FlsSetValue, [%d->%d->%d] currently executing fiber does not exist???\n", tgid, pid, fid);
         return ERROR;    // Current fiber does not exist???
     }
     
-     dbg("FlsSetValue, thread %d in process %d running fiber %d wants to write %lld at index %ld", pid, tgid, fid, value, index);
+    dbg("FlsSetValue, [%d->%d->%d] wants to write %lld in index %ld\n", tgid, pid, fid, value, index);
     
     // Check if target entry had been allocated and not freed
     if(!test_bit(index, f->fls_used_bmp)){
-        dbg("Error FlsSetValue, fid %d from process %d tried writing a non malloc-ed entry\n",fid, tgid);
+        dbg("Error FlsSetValue, [%d->%d->%d] tried writing a non malloc-ed entry\n", tgid, pid, fid);
         return ERROR;    // Target entry does not exist
     }
     
     // Write into the slot
     f->fls[index]=value;
+    
+    dbg("FlsSetValue, [%d->%d->%d] done\n", tgid, pid, fid);
     
     return SUCCESS;
 }
