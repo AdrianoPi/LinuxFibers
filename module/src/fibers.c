@@ -559,6 +559,8 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
     struct thread  *t;
     struct fiber   *f;
     
+    dbg("FlsSetValue, thread %d in process %d", pid, tgid);
+    
     if(index>=FLS_SIZE || index < 0){
         dbg("Error FlsSetValue, tried writing to an index out of the FLS memory range");
         return ERROR;
@@ -587,6 +589,8 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
         dbg("Error FlsSetValue, currently executing fiber %d from process %d does not exist???\n",fid, tgid);
         return ERROR;    // Current fiber does not exist???
     }
+    
+     dbg("FlsSetValue, thread %d in process %d running fiber %d wants to write %lld at index %ld", pid, tgid, fid, value, index);
     
     // Check if target entry had been allocated and not freed
     if(!test_bit(index, f->fls_used_bmp)){
