@@ -53,6 +53,8 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
     }
     bzero(fargs.stack_base, STACK_SIZE);
     
+    // @TODO handle fiber return with pthread exit
+    //*(fargs.stack_base+STACK_SIZE -8)= wrap_pthread_exit;
     
     log("[Fibers Interface] CreateFiber ioctl_param %ld, user_fn %ld\n",
            (long unsigned)&fargs,
