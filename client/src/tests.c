@@ -31,8 +31,9 @@ int FlsAlloc_test_01(){
         tries++;
         if(addr!=ERROR) successes++;
     }while(tries<to_alloc);
-    printf("\n\nFlsAlloc_test_02 - Allocated %d slots. Got %d successful allocations\n\n", to_alloc, successes);
+    printf("\n\nFlsAlloc_test_01 - Allocated %d slots. Got %d successful allocations\n\n", to_alloc, successes);
     addr=FlsAlloc();
+    printf("\n\nADDRESS: %ld", addr);
     if(addr== (long) ERROR){
         return SUCCESS;
     }
@@ -212,6 +213,8 @@ int flsAlloc_Until_err(){
             break;
         }
     } while(successes < to_alloc);
+    
     printf("\n\nflsAlloc_Until_err - Tried allocating %d slots, got %d successes\n\n", to_alloc, successes);
+    
     return 0;
 }

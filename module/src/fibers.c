@@ -45,24 +45,18 @@ struct fiber{
     pid_t             fid;   // key for hashtable
     struct hlist_node fnext; // Needed to be added into an hastable
     
-    // @TODO: CHECK WHETHER BITMAPS START ZEROED OR NOT
-    
+        
     // FLS-related fields
     long long * fls;//[FLS_SIZE];
     // Bitmap to check for used slots
     unsigned long * fls_used_bmp;
-    
-    //DECLARE_BITMAP(fls_used_bmp, FLS_SIZE);
     
     // LinkedList to keep slots inbetween
     struct fls_free_ll * free_ll;
     // Bitmap to check if a slot is pointed by a LL node
     unsigned long * fls_pointed_bmp;
     
-    //DECLARE_BITMAP(fls_pointed_bmp, FLS_SIZE);
-    
     int used_fls;
-    
     
 };
 
@@ -448,12 +442,16 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
         
         dbg("FlsAlloc, [%d->%d->%d] got index, updated bitmaps\n", tgid, pid, fid);
         
-        // We need to check that the free bit is not followed by a zone
-        // pointed by another LL node
+        // We need to check that
+        // + The free bit is not the last one in the bitmap
         // AND
-        // check if the free zone continues or we need the next pointer
-        // => if next bit is not pointed and not used, increment index
-        if(!test_bit(index+1, f->fls_pointed_bmp) && !test_bit(index+1, f->fls_used_bmp)){
+        // + The free bit is not followed by a zone pointed by another LL node
+        // AND
+        // + Whether the free zone continues or we need the next pointer
+        // THEN
+        // => if next bit is not pointed and not used, increment
+        //      index if it doesn't go above FLS_SIZE
+        if(index<FLS_SIZE-1 && !test_bit(index+1, f->fls_pointed_bmp) && !test_bit(index+1, f->fls_used_bmp)){
             
             dbg("FlsAlloc, [%d->%d->%d] the slot following the allocated one is free and not pointed by a node of linked list\n", tgid, pid, fid);
             
@@ -516,6 +514,12 @@ int kernelFlsFree(pid_t tgid, pid_t pid, long index){
     if (!f){
         dbg("Error FlsFree, [%d->%d->%d] currently executing fiber does not exist???\n", tgid, pid, fid);
         return ERROR;    // Target fiber does not exist
+    }
+    
+    // Check if FLS has been initialized and entry had been previously malloc-ed
+    if(!f->used_fls  || !test_bit(index, f->fls_used_bmp)){
+        dbg("Error FlsFree, [%d->%d->%d] tried freeing a non malloc-ed entry\n", tgid, pid, fid);
+        return ERROR;    // Target entry does not exist
     }
     
     clear_bit(index, f->fls_used_bmp);
@@ -589,8 +593,8 @@ long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
         return ERROR;    // Current fiber does not exist???
     }
     
-    // Check if target entry exists
-    if(!test_bit(index, f->fls_used_bmp)){
+    // Check if FLS has been initialized and target entry exists
+    if(!f->used_fls || !test_bit(index, f->fls_used_bmp)){
         dbg("Error FlsGetValue, [%d->%d->%d] tried accessing a non malloc-ed entry\n", tgid, pid, fid);
         return ERROR;    // Target entry does not exist
     }
@@ -641,8 +645,8 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
     
     dbg("FlsSetValue, [%d->%d->%d] wants to write %lld in index %ld\n", tgid, pid, fid, value, index);
     
-    // Check if target entry had been allocated and not freed
-    if(!test_bit(index, f->fls_used_bmp)){
+    // Check if FLS has been initialized and target entry has been allocated and not freed
+    if(!f->used_fls || !test_bit(index, f->fls_used_bmp)){
         dbg("Error FlsSetValue, [%d->%d->%d] tried writing a non malloc-ed entry\n", tgid, pid, fid);
         return ERROR;    // Target entry does not exist
     }

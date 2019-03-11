@@ -29,7 +29,8 @@ int main(){
     // Convert the main thread to a Fiber
     fid0 = ConvertThreadToFiber();
     
-    
+    // This function allocs the entirety of FLS memory and also one more
+    // slot, to verify that ERROR is returned when FLS is full
     ret = FlsAlloc_test_01();
     print_test_outcome(ret, "FlsAlloc_test_01");
     printf("\n");
@@ -45,8 +46,6 @@ int main(){
     print_test_outcome(ret, "FlsAllocSetGetFree");
     printf("\n");
     
-    
-    return 0;
     
     // Create another fiber fiber0
     printf("Creating fiber with RIP:%p\n",fiber_fn);
