@@ -10,6 +10,7 @@
 #include <asm/thread_info.h>
 #include <linux/sched/task_stack.h>
 #include <linux/types.h>
+#include <linux/bitops.h>
 
 #define FLS_SIZE 4096
 
@@ -47,14 +48,18 @@ struct fiber{
     // @TODO: CHECK WHETHER BITMAPS START ZEROED OR NOT
     
     // FLS-related fields
-    long long fls[FLS_SIZE];
+    long long * fls;//[FLS_SIZE];
     // Bitmap to check for used slots
-    DECLARE_BITMAP(fls_used_bmp, FLS_SIZE);
+    unsigned long * fls_used_bmp;
+    
+    //DECLARE_BITMAP(fls_used_bmp, FLS_SIZE);
     
     // LinkedList to keep slots inbetween
     struct fls_free_ll * free_ll;
     // Bitmap to check if a slot is pointed by a LL node
-    DECLARE_BITMAP(fls_pointed_bmp, FLS_SIZE);
+    unsigned long * fls_pointed_bmp;
+    
+    //DECLARE_BITMAP(fls_pointed_bmp, FLS_SIZE);
     
     int used_fls;
     
@@ -201,8 +206,10 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     
     // FLS management
     f->used_fls = 0;
-    bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
-    bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
+    
+    // Better of doing these things in the intialization of FLS
+    //bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
+    //bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
     
     //f->fls = kmalloc(sizeof(long long) * FLS_SIZE, GFP_KERNEL);
 
@@ -263,8 +270,10 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     
     // FLS management
     f->used_fls = 0;
-    bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
-    bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
+    
+    
+    //bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
+    //bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
 
    
     dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
@@ -395,12 +404,23 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
         dbg("FlsAlloc, [%d->%d->%d] fiber had never used FLS, initializing\n", tgid, pid, fid);
         
         // FLS was never used yet, set it up
+        // Alloc space
+        f->fls = vmalloc(sizeof(long long) * FLS_SIZE);
+        
         // Setup LL for free entries
         f->free_ll = vmalloc(sizeof(struct fls_free_ll));
         f->free_ll->index = 1;
         f->free_ll->next = NULL;
         
         dbg("FlsAlloc, [%d->%d->%d] linked list set up\n", tgid, pid, fid);
+        
+        // Setup the bitmaps
+        f->fls_used_bmp = bitmap_alloc(FLS_SIZE, GFP_KERNEL);
+        bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
+        
+        f->fls_pointed_bmp = bitmap_alloc(FLS_SIZE, GFP_KERNEL);
+        bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
+        
         
         // Bit 1 is pointed by LL - set bit in bitmap
         set_bit(1, f->fls_pointed_bmp);
