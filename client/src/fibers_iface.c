@@ -78,23 +78,34 @@ pid_t SwitchToFiber(pid_t fiber_id){
 }
 
 
+/* ORIGINAL FUNCTION
 long FlsAlloc(){
     log("[Fibers Interface] FlsAlloc\n");
     
     long ret = ioctl(fd, IOCTL_FlsAlloc, 0);
     
-    if (ret ==-1 ) perror("[Fibers Interface] FlsAlloc ioctl\n");
+    if (ret ==-1 ) log("[Fibers Interface] FlsAlloc ioctl\n");
     else           log("[Fibers Interface] Ok.\n");
+    
+    return ret;
+}
+*/
+
+long FlsAlloc(){
+    
+    long ret = ioctl(fd, IOCTL_FlsAlloc, 0);
+    
+    if (ret ==-1 ) log("[Fibers Interface] FlsAlloc ioctl\n");
     
     return ret;
 }
 
 int FlsFree(long index){
     log("[Fibers Interface] FlsFree %ld\n", index);
-     
+    
     int ret = ioctl(fd, IOCTL_FlsFree, index);
     
-    if (ret ==-1 ) perror("[Fibers Interface] FlsFree ioctl\n");
+    if (ret ==-1 ) log("[Fibers Interface] FlsFree ioctl\n");
     else           log("[Fibers Interface] Ok.\n");
     
     return ret;
@@ -105,7 +116,7 @@ long long FlsGetValue(long index){
     
     long long ret = ioctl(fd, IOCTL_FlsGetValue, index);
     
-    if (ret ==-1 ) perror("[Fibers Interface] FlsGetValue ioctl\n");
+    if (ret ==-1 ) log("[Fibers Interface] FlsGetValue ioctl\n");
     else           log("[Fibers Interface] Ok.\n");
     
     return ret;
@@ -122,7 +133,7 @@ int FlsSetValue(long index, long long value){
     
     int ret = ioctl(fd, IOCTL_FlsSetValue, (long unsigned) &flsargs );
     
-    if (ret ==-1 ) perror("[Fibers Interface] FlsSetValue ioctl\n");
+    if (ret ==-1 ) log("[Fibers Interface] FlsSetValue ioctl\n");
     else           log("[Fibers Interface] Ok.\n");
     
     return ret;
