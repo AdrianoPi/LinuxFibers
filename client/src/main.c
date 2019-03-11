@@ -24,26 +24,26 @@ int main(){
     int ret;
     long index;
     
-    //flsAllocSetGetFree();
+    flsAllocSetGetFree();
     
     // Convert the main thread to a Fiber
     fid0 = ConvertThreadToFiber();
     
-    /*
+    
     ret = FlsAlloc_test_01();
     print_test_outcome(ret, "FlsAlloc_test_01");
     printf("\n");
-    */
     
-    ret = flsAlloc_Until_err();
     
-    /*ret = FlsFree(50);
+    //ret = flsAlloc_Until_err();
+    
+    ret = FlsFree(50);
     print_test_outcome(ret, "FlsFree");
-    printf("\n");*/
+    printf("\n");
     
-    /*ret = flsAllocSetGetFree();
+    ret = flsAllocSetGetFree();
     print_test_outcome(ret, "FlsAllocSetGetFree");
-    printf("\n");*/
+    printf("\n");
     
     
     return 0;

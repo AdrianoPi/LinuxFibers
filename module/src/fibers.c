@@ -207,12 +207,6 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     // FLS management
     f->used_fls = 0;
     
-    // Better of doing these things in the intialization of FLS
-    //bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
-    //bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
-    
-    //f->fls = kmalloc(sizeof(long long) * FLS_SIZE, GFP_KERNEL);
-
     dbg("A new fiber with fid %d is created, with active_pid %d\n",f->fid,atomic_read(&(f->active_pid)));
 
     hash_add_rcu(p->fibers,&(f->fnext),f->fid); 
@@ -260,21 +254,17 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     f->stack_size = stack_size;
     
     memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
+    
     f->pt_regs.ip = (long) user_fn;
     //f->pt_regs.cx = (long) user_fn;
     f->pt_regs.di = (long) param;
     f->pt_regs.sp = (long) (stack_base + stack_size) - 8;
-    
      
     f->pt_regs.bp = f->pt_regs.sp;
     
     // FLS management
     f->used_fls = 0;
     
-    
-    //bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
-    //bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
-
    
     dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
     
@@ -349,6 +339,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     
     // Restore into the CPU the context of dst_f 
     memcpy(cpu_regs, &(dst_f->pt_regs), sizeof(struct pt_regs));
+    
     // ****************************************
     // @TODO RESTORE fpu;
     // ***************************************
