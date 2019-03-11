@@ -199,8 +199,10 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     f->fid = atomic_fetch_inc(&(p->last_fid));
     atomic_set(&(t->active_fid),f->fid);
     
-    // FLS flag
+    // FLS management
     f->used_fls = 0;
+    bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
+    bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
     
     //f->fls = kmalloc(sizeof(long long) * FLS_SIZE, GFP_KERNEL);
 
@@ -259,12 +261,11 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
      
     f->pt_regs.bp = f->pt_regs.sp;
     
-    // FLS flag
-    f->used_fls=0;
-    
-    bitmap_release_region(f->fls_used_bmp, 0, FLS_SIZE);
-    
-    bitmap_release_region(f->fls_pointed_bmp, 0, FLS_SIZE);
+    // FLS management
+    f->used_fls = 0;
+    bitmap_clear(f->fls_used_bmp, 0, FLS_SIZE);
+    bitmap_clear(f->fls_pointed_bmp, 0, FLS_SIZE);
+
    
     dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
     

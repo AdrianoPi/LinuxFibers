@@ -16,7 +16,6 @@ int fid2=0;
 void fiber_fn( void * p ){
     while(1){
         printf("[FIBER-%ld] I'm an alive.\n",(long int)p);
-        return;
         SwitchToFiber(fid0);
     }
 }
@@ -47,7 +46,7 @@ int main(){
     printf("\n");*/
     
     
-    //return 0;
+    return 0;
     
     // Create another fiber fiber0
     printf("Creating fiber with RIP:%p\n",fiber_fn);
