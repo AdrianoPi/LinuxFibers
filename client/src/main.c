@@ -16,6 +16,7 @@ int fid2=0;
 void fiber_fn( void * p ){
     while(1){
         printf("[FIBER-%ld] I'm an alive.\n",(long int)p);
+        return;
         SwitchToFiber(fid0);
     }
 }
@@ -24,16 +25,29 @@ int main(){
     int ret;
     long index;
     
-    flsAllocSetGetFree();
+    //flsAllocSetGetFree();
     
     // Convert the main thread to a Fiber
     fid0 = ConvertThreadToFiber();
     
-    //FlsAlloc_test_01();
+    /*
+    ret = FlsAlloc_test_01();
+    print_test_outcome(ret, "FlsAlloc_test_01");
+    printf("\n");
+    */
     
-    //FlsFree(50);
+    ret = flsAlloc_Until_err();
     
-    flsAllocSetGetFree();
+    /*ret = FlsFree(50);
+    print_test_outcome(ret, "FlsFree");
+    printf("\n");*/
+    
+    /*ret = flsAllocSetGetFree();
+    print_test_outcome(ret, "FlsAllocSetGetFree");
+    printf("\n");*/
+    
+    
+    //return 0;
     
     // Create another fiber fiber0
     printf("Creating fiber with RIP:%p\n",fiber_fn);

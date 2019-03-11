@@ -76,6 +76,7 @@ pid_t SwitchToFiber(pid_t fiber_id){
 }
 
 
+/* ORIGINAL FUNCTION
 long FlsAlloc(){
     log("[Fibers Interface] FlsAlloc\n");
     
@@ -83,6 +84,16 @@ long FlsAlloc(){
     
     if (ret ==-1 ) log("[Fibers Interface] FlsAlloc ioctl\n");
     else           log("[Fibers Interface] Ok.\n");
+    
+    return ret;
+}
+*/
+
+long FlsAlloc(){
+    
+    long ret = ioctl(fd, IOCTL_FlsAlloc, 0);
+    
+    if (ret ==-1 ) log("[Fibers Interface] FlsAlloc ioctl\n");
     
     return ret;
 }

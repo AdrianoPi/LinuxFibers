@@ -201,6 +201,8 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     
     // FLS flag
     f->used_fls = 0;
+    
+    //f->fls = kmalloc(sizeof(long long) * FLS_SIZE, GFP_KERNEL);
 
     dbg("A new fiber with fid %d is created, with active_pid %d\n",f->fid,atomic_read(&(f->active_pid)));
 
@@ -252,11 +254,17 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     f->pt_regs.ip = (long) user_fn;
     //f->pt_regs.cx = (long) user_fn;
     f->pt_regs.di = (long) param;
-    f->pt_regs.sp = (long) (stack_base + stack_size) - 8; 
+    f->pt_regs.sp = (long) (stack_base + stack_size) - 8;
+    
+     
     f->pt_regs.bp = f->pt_regs.sp;
     
     // FLS flag
     f->used_fls=0;
+    
+    bitmap_release_region(f->fls_used_bmp, 0, FLS_SIZE);
+    
+    bitmap_release_region(f->fls_pointed_bmp, 0, FLS_SIZE);
    
     dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
     
