@@ -45,9 +45,9 @@ struct fiber{
     pid_t             fid;   // key for hashtable
     struct hlist_node fnext; // Needed to be added into an hastable
     
-        
+    
     // FLS-related fields
-    long long * fls;//[FLS_SIZE];
+    long long * fls;
     // Bitmap to check for used slots
     unsigned long * fls_used_bmp;
     
@@ -81,7 +81,8 @@ struct process{
 
 // Mantain thread activated fiber
 struct thread{
-    atomic_t active_fid;
+    
+    pid_t active_fid;
 
     // These attributes are needed to add struct process into an hashtable
     pid_t pid;                // key for hashtable
@@ -196,7 +197,7 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     f->stack_size = 0;    // has not a newly allocated stack
     
     f->fid = atomic_fetch_inc(&(p->last_fid));
-    atomic_set(&(t->active_fid),f->fid);
+    t->active_fid = f->fid;
     
     // FLS management
     f->used_fls = 0;
@@ -293,7 +294,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
         return ERROR;    // Calling thread was not converted yet
     }
         
-    src_fid=atomic_read(&(t->active_fid));
+    src_fid = t->active_fid;
     
     // Find target fiber
     dst_f = get_fiber_by_id(fid, p);
@@ -340,7 +341,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     dbg("SwitchToFiber, Loaded into CPU ctx the context that was into dst_fiber %d\n",dst_f->fid);
     dbg("SwitchToFiber, Loaded RIP: %ld\n",dst_f->pt_regs.ip);
     
-    atomic_set(&(t->active_fid),dst_f->fid);
+    t->active_fid = dst_f->fid;
     
     return SUCCESS;
 }
@@ -374,7 +375,7 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
         return ERROR;    // Calling thread was not converted yet
     }
         
-    fid = atomic_read(&(t->active_fid));
+    fid = t->active_fid;
     
     // Find currently executing fiber
     f = get_fiber_by_id(fid, p);
@@ -506,8 +507,8 @@ int kernelFlsFree(pid_t tgid, pid_t pid, long index){
         dbg("Error FlsFree, [%d->%d] thread %d still not in %d->threads\n", tgid, pid, pid, tgid);
         return ERROR;    // Calling thread was not converted yet
     }
-        
-    fid = atomic_read(&(t->active_fid));
+    
+    fid = t->active_fid;
     
     // Find currently executing fiber
     f = get_fiber_by_id(fid, p);
@@ -583,8 +584,8 @@ long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
         dbg("Error FlsGetValue, [%d->%d] thread %d still not in %d->threads\n", tgid, pid, pid, tgid);
         return ERROR;    // Calling thread was not converted yet
     }
-        
-    fid = atomic_read(&(t->active_fid));
+    
+    fid = t->active_fid;
     
     // Find currently executing fiber
     f = get_fiber_by_id(fid, p);
@@ -633,8 +634,8 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
         dbg("Error FlsSetValue, [%d->%d] thread %d still not in %d->threads\n", tgid, pid, pid, tgid);
         return ERROR;    // Calling thread was not converted yet
     }
-        
-    fid = atomic_read(&(t->active_fid));
+    
+    fid = t->active_fid;
     
     // Find currently executing fiber
     f = get_fiber_by_id(fid, p);
