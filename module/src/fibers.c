@@ -451,7 +451,7 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
         // THEN
         // => if next bit is not pointed and not used, increment
         //      index if it doesn't go above FLS_SIZE
-        if(index<FLS_SIZE-1 && !test_bit(index+1, f->fls_pointed_bmp) && !test_bit(index+1, f->fls_used_bmp)){
+        if(index+1<FLS_SIZE && !test_bit(index+1, f->fls_pointed_bmp) && !test_bit(index+1, f->fls_used_bmp)){
             
             dbg("FlsAlloc, [%d->%d->%d] the slot following the allocated one is free and not pointed by a node of linked list\n", tgid, pid, fid);
             
