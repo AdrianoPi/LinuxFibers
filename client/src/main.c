@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <stdlib.h>
+
 #define SUCCESS     0
 #define ERROR       -1
 
@@ -16,6 +18,11 @@ int fid2=0;
 void fiber_fn( void * p ){
     while(1){
         printf("[FIBER-%ld] I'm an alive.\n",(long int)p);
+        int x = 0;
+        do{
+            x++;
+        }while(random()<(RAND_MAX/2));
+        printf("%d", x);
         SwitchToFiber(fid0);
     }
 }

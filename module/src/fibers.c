@@ -11,6 +11,7 @@
 #include <linux/sched/task_stack.h>
 #include <linux/types.h>
 #include <linux/bitops.h>
+#include <linux/time.h>
 
 #define FLS_SIZE 4096
 
@@ -25,8 +26,8 @@ struct fls_free_ll{
 // Mantains the cpu context associated with the workflow of this fiber.
 struct fiber{
 
-    atomic_t           active_pid;   // 0 if there is no active thread, ensure
-                                     // mutual exclusion from SwitchToFiber 
+    atomic_t        active_pid;   // 0 if there is no active thread, ensure
+                                  // mutual exclusion from SwitchToFiber
     
     /* @TODO set active_pid atomically and avoid usage of this spinlock
     spinlock_t      fiber_lock;   // Needed to ensure that no two threads
@@ -47,6 +48,7 @@ struct fiber{
     
     
     // FLS-related fields
+    
     long long * fls;
     // Bitmap to check for used slots
     unsigned long * fls_used_bmp;
@@ -57,6 +59,20 @@ struct fiber{
     unsigned long * fls_pointed_bmp;
     
     int used_fls;
+    
+    // Metrics
+    
+    pid_t           parent;       // Pid of thread that created the fiber
+
+    unsigned long   activations;  // Successful activation is guarded
+                                  // don't need atomic
+                          
+    atomic_long_t   failed_activations; // Needs to be atomic if fibers
+                                        // are not thread-specific
+    
+    unsigned long   total_running_time;
+    
+    void * entry_point;
     
 };
 
@@ -201,6 +217,13 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     
     // FLS management
     f->used_fls = 0;
+     
+    f->entry_point = (void*) task_pt_regs(current)->ip;
+    f->parent = pid;
+    f->activations = 1;
+    atomic_long_set(&(f->failed_activations), 0);
+    f->total_running_time = 0;
+    
     
     dbg("A new fiber with fid %d is created, with active_pid %d\n",f->fid,atomic_read(&(f->active_pid)));
 
@@ -251,6 +274,7 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
     
     f->pt_regs.ip = (long) user_fn;
+    f->entry_point = (void *) f->pt_regs.ip;
     //f->pt_regs.cx = (long) user_fn;
     f->pt_regs.di = (long) param;
     f->pt_regs.sp = (long) (stack_base + stack_size) - 8;
@@ -259,6 +283,12 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     
     // FLS management
     f->used_fls = 0;
+    
+    // Additional metrics
+    f->parent = pid;
+    f->activations = 0;
+    atomic_long_set(&(f->failed_activations), 0);
+    f->total_running_time = 0;
     
    
     dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
@@ -276,9 +306,14 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     struct fiber   *src_f;
     struct pt_regs *cpu_regs;
     long src_fid,old;
+    unsigned long exectime;
     log("kernelSwitchToFiber tgid:%d pid:%d fid:%d\n",tgid,pid,fid);
-
-
+    
+    // Get time spent in userspace
+    exectime = current->utime;
+    dbg("kernelSwitchToFiber [%d->%d] has run last fiber for %ld\n", tgid, pid, exectime);
+    
+    
     // Check if struct process exists otherwise return error
     p = get_process_by_id(tgid);
     if(!p){
@@ -306,6 +341,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
 
     // Check if target fiber is already in use and book it for the new use
     if( (old = atomic_cmpxchg(&(dst_f->active_pid),0,pid)) !=0){
+        atomic_long_inc(&(dst_f->failed_activations));
         log("[%d->%d] Error, fiber %d was already in use by %ld\n",tgid,pid,fid,old);
         return ERROR; 
     }
@@ -327,6 +363,10 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     // @TODO fpu__save(&f_current->fpu);
     // ***************************************
     
+    // Update metrics before releasing old fiber
+    src_f->total_running_time += exectime;
+    dbg("kernelSwitchToFiber [Fiber %ld] total execution time %ld\n", src_fid, src_f->total_running_time);
+    
     // Disengage old fiber
     atomic_set(&(src_f->active_pid),0);
     
@@ -342,6 +382,9 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     dbg("SwitchToFiber, Loaded RIP: %ld\n",dst_f->pt_regs.ip);
     
     t->active_fid = dst_f->fid;
+    
+    // Activation successful
+    dst_f->activations++;
     
     return SUCCESS;
 }
