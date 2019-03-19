@@ -12,6 +12,8 @@
 #include <linux/types.h>
 #include <linux/bitops.h>
 #include <linux/time.h>
+#include <linux/uaccess.h>
+
 
 #define FLS_SIZE 4096
 
@@ -38,7 +40,7 @@ struct fiber{
     struct pt_regs  pt_regs;      // These two fields will store the state
     struct fpu      fpu;          // of the CPU of this fiber
 
-    void           *stack_base;   // Base of allocated stack, to be freed
+    void __user           *stack_base;   // Base of allocated stack, to be freed
     unsigned long   stack_size;   // Size of the allocated stack 
 
 
@@ -278,8 +280,15 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     //f->pt_regs.cx = (long) user_fn;
     f->pt_regs.di = (long) param;
     f->pt_regs.sp = (long) (stack_base + stack_size) - 8;
-     
+    
     f->pt_regs.bp = f->pt_regs.sp;
+    
+    /*
+    // Set return address
+    if(copy_to_user((void*)f->pt_regs.bp, &FiberExit, sizeof(void *))){
+        dbg("CreateFiber, error could not write in user stack");
+    }
+    */
     
     // FLS management
     f->used_fls = 0;
@@ -703,6 +712,78 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
     return SUCCESS;
 }
 
+int kernelFiberExit(pid_t tgid, pid_t pid){
+    
+    pid_t fid;
+    
+    struct process *p;
+    struct thread  *t;
+    struct fiber   *f;
+    struct fls_free_ll * ll_old;
+    
+    // Check if struct process exists otherwise return error
+    p = get_process_by_id(tgid);
+    if(!p){
+        dbg("Error kernelFiberExit, process %d had no fibers.\n",tgid);
+        return ERROR;   // In the current process no thread has
+                        // been converted to fiber yet
+    }
+    
+    // Check if current thread has been converted to fiber otherwise error
+    t = get_thread_by_id(pid, p);
+    if(!t){
+        dbg("Error kernelFiberExit, thread %d not in %d->threads\n",pid,tgid);
+        return ERROR;    // Calling thread was not converted yet
+    }
+        
+    fid = t->active_fid;
+    
+    // Find currently executing fiber
+    f = get_fiber_by_id(fid, p);
+    if (!f){
+        dbg("Error kernelFiberExit, currently running fiber %d does not exist?\n",fid);
+        return ERROR;    // Currently executing fiber does not exist???
+    }
+    
+    log("kernelFiberExit, [%d->%d->%d] wants to exit, clearing memory...\n", tgid, pid, fid);
+    
+    // Free fiber stack
+    int x = access_ok(VERIFY_READ, f->stack_base, f->stack_size);
+    dbg("kernelFiberExit, [%d->%d->%d] freeing stack\nAccess_ok: %d", tgid, pid, fid, x);
+    //vfree(f->stack_base);
+    
+    // Free FLS-related fields, if FLS was used
+    if(f->used_fls){
+        dbg("kernelFiberExit, [%d->%d->%d] used FLS, freeing it\n", tgid, pid, fid);
+        dbg("kernelFiberExit, [%d->%d->%d] freeing f->fls\n", tgid, pid, fid);
+        vfree(f->fls);
+
+        dbg("kernelFiberExit, [%d->%d->%d] freeing bitmaps\n", tgid, pid, fid);
+        bitmap_free(f->fls_used_bmp);
+        bitmap_free(f->fls_pointed_bmp);
+        //kfree(f->fls_used_bmp);
+        //kfree(f->fls_pointed_bmp);
+        dbg("kernelFiberExit, [%d->%d->%d] freeing f->free_ll\n", tgid, pid, fid);
+        while(f->free_ll){
+            ll_old = f->free_ll;
+            f->free_ll = f->free_ll->next;
+            vfree(ll_old);
+        }
+    } else {
+        dbg("kernelFiberExit, [%d->%d->%d] had never used FLS\n", tgid, pid, fid);
+    }
+    
+    
+    // Free struct fiber itself
+    kfree(f);
+    
+    // DO NOT free Thread entry unless the process is exiting
+    // as other threads may want to call the thread's fibers
+    
+    log("kernelFiberExit, [%d->%d->%d] done! Fiber exiting...\n", tgid, pid, fid);
+    do_exit(0);
+    
+}
 
 // @TODO IMPLEMENT CLEANUP FUNCTION
 void kernelProcCleanup(pid_t tgid){ 

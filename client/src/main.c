@@ -22,7 +22,11 @@ void fiber_fn( void * p ){
         do{
             x++;
         }while(random()<(RAND_MAX/2));
-        printf("%d", x);
+        printf("[fiber_fn] %ld\n", fiber_fn);
+        //FiberExit();
+        int ret;
+        ret = flsAllocSetGetFree();
+        return;
         SwitchToFiber(fid0);
     }
 }
@@ -31,11 +35,12 @@ int main(){
     int ret;
     long index;
     
-    flsAllocSetGetFree();
+    //flsAllocSetGetFree();
     
     // Convert the main thread to a Fiber
     fid0 = ConvertThreadToFiber();
     
+    /*
     // This function allocs the entirety of FLS memory and also one more
     // slot, to verify that ERROR is returned when FLS is full
     ret = FlsAlloc_test_01();
@@ -52,10 +57,14 @@ int main(){
     ret = flsAllocSetGetFree();
     print_test_outcome(ret, "FlsAllocSetGetFree");
     printf("\n");
+    */
     
     
     // Create another fiber fiber0
     printf("Creating fiber with RIP:%p\n",fiber_fn);
+    
+    printf("%ld\n", &FiberExit);
+    
     fid1  = CreateFiber(fiber_fn, (void *)1);
     if(fid1==-1){
         printf("Error creating fiber.\n");

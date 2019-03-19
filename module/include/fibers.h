@@ -30,6 +30,9 @@ int kernelFlsSetValue               (pid_t tgid,          \
                                     pid_t pid,            \
                                     long index,           \
                                     long long value);
+                                    
+int kernelFiberExit                 (pid_t tgid,          \
+                                    pid_t pid);
 
 void kernelProcCleanup (pid_t tgid); 
 void kernelModCleanup  (void);
