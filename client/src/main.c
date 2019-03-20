@@ -46,18 +46,18 @@ int main(){
     ret = FlsAlloc_test_01();
     print_test_outcome(ret, "FlsAlloc_test_01");
     printf("\n");
-    
+    */
     
     //ret = flsAlloc_Until_err();
     
+    /*
     ret = FlsFree(50);
     print_test_outcome(ret, "FlsFree");
     printf("\n");
-    
+    */
     ret = flsAllocSetGetFree();
     print_test_outcome(ret, "FlsAllocSetGetFree");
     printf("\n");
-    */
     
     
     // Create another fiber fiber0
