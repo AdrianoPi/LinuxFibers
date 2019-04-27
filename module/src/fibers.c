@@ -392,7 +392,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
 
 
 long kernelFlsAlloc(pid_t tgid, pid_t pid){
-    
+    /*
     pid_t fid;
     
     struct process *p;
@@ -517,6 +517,8 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
     dbg("FlsAlloc, [%d->%d->%d] Done. Returning index %ld\n", tgid, pid, fid, index);
     
     return index;
+*/
+    return 0;
 }
 
 int kernelFlsFree(pid_t tgid, pid_t pid, long index){

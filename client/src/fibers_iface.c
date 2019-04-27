@@ -112,7 +112,7 @@ int FlsFree(long index){
 }
 
 long long FlsGetValue(long index){
-    log("[Fibers Interface] FlsGetValue %d\n", index);
+    log("[Fibers Interface] FlsGetValue %ld\n", index);
     
     long long ret = ioctl(fd, IOCTL_FlsGetValue, index);
     
