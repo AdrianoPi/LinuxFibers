@@ -1,4 +1,5 @@
-#include "fibers_driver.h" // For MAJOR_NUM and IOCTL_*
+
+
 #include "fibers_iface.h"
 
 #include <sys/ioctl.h>
@@ -8,7 +9,7 @@
 #include <string.h>
 
 
-#define STACK_SIZE 1024
+#define STACK_SIZE 4096*2
 
 #define log(fmt,...) printf( fmt , ##__VA_ARGS__)
 
