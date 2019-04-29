@@ -169,7 +169,7 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     f->stack_size = stack_size;
 
     memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
-
+     
     f->pt_regs.ip = (long) user_fn;
     f->entry_point = (void *) f->pt_regs.ip;
     //f->pt_regs.cx = (long) user_fn;
@@ -549,6 +549,7 @@ long long kernelFlsGetValue(pid_t tgid, pid_t pid, long index){
 
     dbg("FlsGetValue, [%d->%d->%d] read %lld\n", tgid, pid, fid, f->fls[index]);
 
+    // @TODO COPY TO USER
     return f->fls[index];
 }
 

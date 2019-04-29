@@ -34,7 +34,7 @@ pid_t ConvertThreadToFiber(){
     ret = ioctl(fd,IOCTL_ConvertThreadToFiber,0);
     log("[Fibers Interface] ret:%d.\n",ret);
 
-    if (ret ==-1 ) perror("[Fibers Interface] ConvertThreadToFiber");
+    if (ret ==-1 ) log("[Fibers Interface] ConvertThreadToFiber error");
 
     return ret;
 }
@@ -54,7 +54,7 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
     //
     // Set stack_base at a 16-memory-aligned address and zero it.
     if (posix_memalign(&(fargs.stack_base), 16, STACK_SIZE)){
-        perror("[Fibers Interface] Could not get a memory-aligned stack base!\n");
+        log("[Fibers Interface] Could not get a memory-aligned stack base!\n");
         return -1;
     }
     bzero(fargs.stack_base, STACK_SIZE);
@@ -73,7 +73,7 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
            fargs.user_fn); 
 
     int ret = ioctl(fd,IOCTL_CreateFiber, (long unsigned ) &fargs );
-    if (ret ==-1 ) perror("[Fibers Interface] CreateFiber ioctl");
+    if (ret ==-1 ) log("[Fibers Interface] CreateFiber ioctl error\n");
     else           log("[Fibers Interface] CreateFiber Ok.\n");
     
     return ret;
@@ -84,7 +84,7 @@ pid_t SwitchToFiber(pid_t fiber_id){
     log("[Fibers Interface] SwitchToFiber %d\n", fiber_id); 
 
     int ret = ioctl(fd,IOCTL_SwitchToFiber,(long unsigned int)fiber_id);
-    if (ret ==-1 ) perror("[Fibers Interface] SwitchToFiber ioctl\n");
+    if (ret ==-1 ) log("[Fibers Interface] SwitchToFiber ioctl error\n");
     else           log("[Fibers Interface] Ok.\n");
     return ret;
 }
@@ -107,7 +107,7 @@ long FlsAlloc(){
     
     long ret = ioctl(fd, IOCTL_FlsAlloc, 0);
     
-    if (ret ==-1 ) log("[Fibers Interface] FlsAlloc ioctl\n");
+    if (ret ==-1 ) log("[Fibers Interface] FlsAlloc ioctl error\n");
     
     return ret;
 }
@@ -117,7 +117,7 @@ int FlsFree(long index){
     
     int ret = ioctl(fd, IOCTL_FlsFree, index);
     
-    if (ret ==-1 ) log("[Fibers Interface] FlsFree ioctl\n");
+    if (ret ==-1 ) log("[Fibers Interface] FlsFree ioctl error\n");
     else           log("[Fibers Interface] Ok.\n");
     
     return ret;
@@ -126,12 +126,22 @@ int FlsFree(long index){
 long long FlsGetValue(long index){
     log("[Fibers Interface] FlsGetValue %ld\n", index);
     
-    long long ret = ioctl(fd, IOCTL_FlsGetValue, index);
+    struct fls_args flsargs;
+    flsargs.index = index;
+    flsargs.value = index;
     
-    if (ret ==-1 ) log("[Fibers Interface] FlsGetValue ioctl\n");
-    else           log("[Fibers Interface] Ok.\n");
+    // TODO Add wrapper for index,_user ret address
+    long ret = ioctl(fd, IOCTL_FlsGetValue,(long long unsigned) &flsargs);
     
-    return ret;
+    
+    if (ret ==-1 ){
+        log("[Fibers Interface] FlsGetValue ioctl error\n");
+        return ret;
+    }
+    else
+        log("[Fibers Interface] Ok. Read: %lld\n",flsargs.value);
+    
+    return flsargs.value;
 }
 
 int FlsSetValue(long index, long long value){
@@ -143,9 +153,9 @@ int FlsSetValue(long index, long long value){
     flsargs.index = index;
     flsargs.value = value;
     
-    int ret = ioctl(fd, IOCTL_FlsSetValue, (long unsigned) &flsargs );
+    int ret = ioctl(fd, IOCTL_FlsSetValue, (long long unsigned) &flsargs );
     
-    if (ret ==-1 ) log("[Fibers Interface] FlsSetValue ioctl\n");
+    if (ret ==-1 ) log("[Fibers Interface] FlsSetValue ioctl error\n");
     else           log("[Fibers Interface] Ok.\n");
     
     return ret;

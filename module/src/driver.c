@@ -15,7 +15,7 @@ long int device_ioctl(
     unsigned long ioctl_param) 
 {
     struct fiber_args fargs;
-    
+    long ret;
     struct fls_args flsargs;
 
     switch (ioctl_num) {
@@ -60,7 +60,32 @@ long int device_ioctl(
             break;
             
         case IOCTL_FlsGetValue:
-            return kernelFlsGetValue(current->tgid, current->pid, (long) ioctl_param );
+        
+            if(!access_ok(VERIFY_READ, ioctl_param, sizeof(struct fls_args))){
+                log("FlsGetValue, invalid ioctl_param\n");
+                return ERROR;
+            }
+            if(!access_ok(VERIFY_WRITE, ioctl_param, sizeof(struct fls_args))){
+                log("FlsGetValue, invalid ioctl_param\n");
+                return ERROR;
+            }
+
+            if(copy_from_user(&flsargs, (void __user *) ioctl_param, sizeof(struct fls_args))){
+                log("FlsGetValue, error Unable to copy_from_user");
+                return ERROR;
+            }
+            
+            ret =  kernelFlsGetValue(current->tgid, current->pid, (long) flsargs.index );
+            
+            log("*****************!!!!!!!!!!!!!!!!!!GETVALUE RET:%ld",ret);
+            flsargs.value = ret;
+            
+            if(copy_to_user((void *) ioctl_param, &flsargs, sizeof(struct fls_args))){
+                log("FlsGetValue, error Unable to copy_to_user");
+                return ERROR;
+            }
+            return SUCCESS;
+            //return kernelFlsGetValue(current->tgid, current->pid, (long) ioctl_param );
             break;
             
         case IOCTL_FlsSetValue:
