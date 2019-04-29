@@ -16,11 +16,16 @@ int fid0=0;
 int fid1=0;
 int fid2=0;
 
+
 // This will be the function of the Fibers
 void fiber_fn( void * p ){
+
+    double test = 0.2;
     while(1){
-        printf("[FIBER-%ld] I'm an alive.\n",(long int)p);
-	sleep(1);
+        printf("[FIBER-%ld] I'm alive. fpu:%f \n",(long int)p,test);
+		test+=.5*((long int)p);
+
+		//sleep(1);
         int x = 0;
         do{
             x++;
@@ -94,11 +99,11 @@ int main(){
     while(1){
         printf("****\n");
         printf("[MAIN-%d] I'm aliveA.\n",fid0);  
-        sleep(1);
+        //sleep(1);
         SwitchToFiber(fid1);
-        sleep(1);
+        //sleep(1);
         SwitchToFiber(fid2);
-        sleep(1);
+        usleep(1000000);
     }
     
 }

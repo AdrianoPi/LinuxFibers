@@ -1,5 +1,6 @@
 #include "fibers.h"
-
+#include <asm/fpu/types.h>
+#include <asm/fpu/internal.h>
 
 DEFINE_HASHTABLE(processes,6);
 DEFINE_SPINLOCK(processes_lock); // processes hashtable spinlock.(RW LOCK?)
@@ -169,6 +170,8 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     f->stack_size = stack_size;
 
     memcpy(&(f->pt_regs), task_pt_regs(current), sizeof(struct pt_regs));
+    copy_fxregs_to_kernel(&(f->fpu));
+    
      
     f->pt_regs.ip = (long) user_fn;
     f->entry_point = (void *) f->pt_regs.ip;
@@ -211,6 +214,11 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     struct pt_regs *cpu_regs;
     long src_fid,old;
     unsigned long exectime;
+    
+    struct fpu *prev_fpu;
+    struct fpu *next_fpu;
+    struct fxregs_state * next_fx_regs;
+    
     log("kernelSwitchToFiber tgid:%d pid:%d fid:%d\n",tgid,pid,fid);
 
     // Get time spent in userspace
@@ -263,9 +271,20 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     cpu_regs = task_pt_regs(current);
 
     memcpy(&(src_f->pt_regs), cpu_regs, sizeof(struct pt_regs));
-    // ****************************************
-    // @TODO fpu__save(&f_current->fpu);
-    // ***************************************
+    
+    
+    //save previous FPU registers in the previous fiber
+    prev_fpu = &(src_f->fpu);
+    copy_fxregs_to_kernel(prev_fpu);
+
+    
+    //restore next FPU registers of the next fiber
+    next_fpu = &(dst_f->fpu);
+    next_fx_regs = &(next_fpu->state.fxsave);
+    copy_kernel_to_fxregs(next_fx_regs);
+
+
+
 
     // Update metrics before releasing old fiber
     src_f->total_running_time += exectime;
