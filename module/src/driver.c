@@ -77,6 +77,11 @@ long int device_ioctl(
             
             return kernelFlsSetValue(current->tgid, current->pid, flsargs.index, flsargs.value );
             break;
+            
+        case IOCTL_FiberExit:
+            log("[%d->%d] FiberExit was called", current->tgid, current->pid);
+            return kernelFiberExit(current->tgid, current->pid);
+            break;
   }
 
   return SUCCESS;

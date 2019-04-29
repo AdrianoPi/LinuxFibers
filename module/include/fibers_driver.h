@@ -35,6 +35,8 @@ struct fls_args{
 #define IOCTL_FlsGetValue           _IOR(MAJOR_NUM, 5, long)
 #define IOCTL_FlsSetValue           _IOW(MAJOR_NUM, 6, struct fls_args *)
 
+#define IOCTL_FiberExit             _IO(MAJOR_NUM, 7)
+
 
 #endif
 

@@ -1,8 +1,6 @@
 #include "fibers.h"
 
 
-
-
 DEFINE_HASHTABLE(processes,6);
 DEFINE_SPINLOCK(processes_lock); // processes hashtable spinlock.(RW LOCK?)
 
@@ -42,6 +40,7 @@ inline struct fiber * get_fiber_by_id(pid_t fid, struct process * p){
     return f;
 }
 
+void freeFiber(struct fiber *f);
 
 pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     struct process *p;
@@ -176,9 +175,16 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     //f->pt_regs.cx = (long) user_fn;
     f->pt_regs.di = (long) param;
     f->pt_regs.sp = (long) (stack_base + stack_size) - 8;
-
+    
     f->pt_regs.bp = f->pt_regs.sp;
-
+    
+    /*
+    // Set return address
+    if(copy_to_user((void*)f->pt_regs.bp, &FiberExit, sizeof(void *))){
+        dbg("CreateFiber, error could not write in user stack");
+    }
+    */
+    
     // FLS management
     f->used_fls = 0;
 
@@ -288,7 +294,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
 }
 
 long kernelFlsAlloc(pid_t tgid, pid_t pid){
-    /*
+
     pid_t fid;
 
     struct process *p;
@@ -413,7 +419,7 @@ long kernelFlsAlloc(pid_t tgid, pid_t pid){
     dbg("FlsAlloc, [%d->%d->%d] Done. Returning index %ld\n", tgid, pid, fid, index);
 
     return index;
-*/
+
     return 0;
 }
 
@@ -601,19 +607,184 @@ int kernelFlsSetValue(pid_t tgid, pid_t pid, long index, long long value){
     return SUCCESS;
 }
 
-// @TODO IMPLEMENT CLEANUP FUNCTION
-void kernelProcCleanup(pid_t tgid){
-
+int kernelFiberExit(pid_t tgid, pid_t pid){
+    
+    pid_t fid;
+    
     struct process *p;
+    struct thread  *t;
+    struct fiber   *f;
+    //struct fls_free_ll * ll_old;
+    
+    //int ret;
+    
+    // Check if struct process exists otherwise return error
+    p = get_process_by_id(tgid);
+    if(!p){
+        dbg("Error kernelFiberExit, process %d had no fibers.\n",tgid);
+        return ERROR;   // In the current process no thread has
+                        // been converted to fiber yet
+    }
+    
+    // Check if current thread has been converted to fiber otherwise error
+    t = get_thread_by_id(pid, p);
+    if(!t){
+        dbg("Error kernelFiberExit, thread %d not in %d->threads\n",pid,tgid);
+        return ERROR;    // Calling thread was not converted yet
+    }
+        
+    fid = t->active_fid;
+    
+    // Find currently executing fiber
+    f = get_fiber_by_id(fid, p);
+    if (!f){
+        dbg("Error kernelFiberExit, currently running fiber %d does not exist?\n",fid);
+        return ERROR;    // Currently executing fiber does not exist???
+    }
+    
+    log("kernelFiberExit, [%d->%d->%d] wants to exit, clearing memory...\n", tgid, pid, fid);
+    
+    freeFiber(f);
+    
+    /*
+     * ALL THIS IS DONE IN freeFiber
+     * 
+     * 
+    // Remove entry from hashtable
+    hash_del_rcu(&(f->fnext));
+    
+    // Free FLS-related fields, if FLS was used
+    if(f->used_fls){
+        dbg("kernelFiberExit, [%d->%d->%d] used FLS, freeing it\n", tgid, pid, fid);
+        dbg("kernelFiberExit, [%d->%d->%d] freeing f->fls\n", tgid, pid, fid);
+        vfree(f->fls);
 
-    p= get_process_by_id(tgid);
+        dbg("kernelFiberExit, [%d->%d->%d] freeing bitmaps\n", tgid, pid, fid);
+        bitmap_free(f->fls_used_bmp);
+        bitmap_free(f->fls_pointed_bmp);
+        //kfree(f->fls_used_bmp);
+        //kfree(f->fls_pointed_bmp);
+        dbg("kernelFiberExit, [%d->%d->%d] freeing f->free_ll\n", tgid, pid, fid);
+        while(f->free_ll){
+            ll_old = f->free_ll;
+            f->free_ll = f->free_ll->next;
+            vfree(ll_old);
+        }
+    } else {
+        dbg("kernelFiberExit, [%d->%d->%d] had never used FLS\n", tgid, pid, fid);
+    }
+    
+    
+    // Free struct fiber itself
+    kfree(f);
+    */
+    
+    
+    // DO NOT free Thread entry unless the process is exiting
+    // as other threads may want to call the thread's fibers
+    
+    log("kernelFiberExit, [%d->%d->%d] done! Fiber exiting...\n", tgid, pid, fid);
+    do_exit(0);
+    
+}
+
+void freeFiber(struct fiber *f){
+    struct fls_free_ll * ll_old;
+    
+    // Free fiber stack?
+    
+    // Delete entry from hashtable
+    hash_del_rcu(&(f->fnext));
+    
+    // Free FLS-related fields, if FLS was used
+    if(f->used_fls){
+        dbg("freeFiber, [%d] used FLS, freeing it\n", f->fid);
+        dbg("freeFiber, [%d] freeing f->fls\n", f->fid);
+        vfree(f->fls);
+
+        dbg("freeFiber, [%d] freeing bitmaps\n", f->fid);
+        bitmap_free(f->fls_used_bmp);
+        bitmap_free(f->fls_pointed_bmp);
+
+        dbg("freeFiber, [%d] freeing f->free_ll\n", f->fid);
+        while(f->free_ll){
+            ll_old = f->free_ll;
+            f->free_ll = f->free_ll->next;
+            vfree(ll_old);
+        }
+    } else {
+        dbg("freeFiber, [%d] had never used FLS\n", f->fid);
+    }
+    
+    // Free struct fiber itself
+    dbg("freeFiber, [%d] freeing the struct fiber itself\n", f->fid);
+    kfree(f);
+}
 
 
-    // Walk into p->threads and free all data
-    // Walk into p->fibers and free all data
+// Cleanup function when process exits
+void kernelProcCleanup(pid_t tgid){ 
+
+    struct process  *p;
+    struct thread   *t;
+    struct fiber    *f;
+    int bucket;
+
+    log("kernelProcCleanup for process %d\n",tgid);
+    
+    p = get_process_by_id(tgid);
+    if(!p){
+        dbg("Error kernelProcCleanup, process %d had no fibers.\n",tgid);
+        return;
+    }
+    
+    // Iterate over all fibers in the table of p
+    hash_for_each_rcu(p->fibers, bucket, f, fnext){
+        if (f==NULL) break; // Cleaned all fibers
+        
+        dbg("kernelProcCleanup, freeing fiber %d.\n", f->fid);
+        
+        // Cleanup after the fiber
+        freeFiber(f);
+    }
+    
+    // Iterate over all threads in the table of p
+    hash_for_each_rcu(p->threads, bucket, t, tnext){
+        if(t==NULL) break; // Cleaned all threads
+        
+        dbg("kernelProcCleanup, freeing thread %d.\n", t->pid);
+        
+        // Delete entry from hashtable
+        hash_del_rcu(&(t->tnext));
+        // Free the struct thread itself
+        kfree(t);
+    }
+    
+    // Remove the process entry from hashtable
+    hash_del_rcu(&(p->pnext));
+    // Free the struct process itself
+    kfree(p);
+    
+    return;
 
 }
 
 void kernelModCleanup(){
+    
+    struct process  *p;
+    int bucket=0;
+    
+    dbg("kernelModCleanup removing everything\n");
+    
     // Walk into processes and free all data
+    hash_for_each_rcu(processes, bucket, p, pnext){
+        if(p==NULL){ // Cleaned all threads
+            dbg("kernelModCleanup all entries for all processes removed\n");
+            break;
+        }
+        dbg("kernelModCleanup found process %d, cleaning up\n", p->tgid);
+        kernelProcCleanup(p->tgid);
+    }
+    
+    dbg("kernelModCleanup done.\n");
 }

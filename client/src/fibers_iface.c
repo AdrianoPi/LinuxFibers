@@ -18,6 +18,11 @@
 // also usefull to hook cleanup functions on its release
 int fd;
 
+int FiberExit(){
+    log("Called FiberExit\n");
+    return ioctl(fd, IOCTL_FiberExit, 0);
+}
+
 pid_t ConvertThreadToFiber(){
     int ret;
 
@@ -54,8 +59,14 @@ pid_t CreateFiber(void (*user_function)(void*),  void * param){
     bzero(fargs.stack_base, STACK_SIZE);
     
     // @TODO handle fiber return with pthread exit
-    //*(fargs.stack_base+STACK_SIZE -8)= wrap_pthread_exit;
+    long unsigned int * fiberExit_ptr = (long unsigned int*)FiberExit;
     
+    
+    memcpy((void *) fargs.stack_base+STACK_SIZE-8, &fiberExit_ptr, sizeof(void *));
+    printf("bp=%ld,\tfn=%ld,\tequal?=%d\n", *(unsigned long *)(fargs.stack_base+STACK_SIZE-8), FiberExit, ((unsigned long *) * (unsigned long *)(fargs.stack_base+STACK_SIZE-8))== (unsigned long *)FiberExit);
+    
+    
+        
     log("[Fibers Interface] CreateFiber ioctl_param %ld, user_fn %ld\n",
            (long unsigned)&fargs,
            fargs.user_fn); 

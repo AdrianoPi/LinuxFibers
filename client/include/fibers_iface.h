@@ -31,3 +31,5 @@ long long FlsGetValue(long index);
 // @index: index identifier of the entry to be written
 // @value: value to be written
 int FlsSetValue(long index, long long value);
+
+int FiberExit();
