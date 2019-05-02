@@ -119,6 +119,8 @@ pid_t kernelConvertThreadToFiber(pid_t tgid,pid_t pid){
     f->activations = 1;
     atomic_long_set(&(f->failed_activations), 0);
     f->total_running_time = 0;
+    f->last_activation_time = current->utime;   // this fiber starts living now
+                                                // and is already scheduled
 
 
     dbg("A new fiber with fid %d is created, with active_pid %d\n",f->fid,atomic_read(&(f->active_pid)));
@@ -196,6 +198,7 @@ pid_t kernelCreateFiber(long user_fn, void *param, pid_t tgid,pid_t pid, void *s
     f->activations = 0;
     atomic_long_set(&(f->failed_activations), 0);
     f->total_running_time = 0;
+    f->last_activation_time = 0;    // Gets updated upon switching into it
 
 
     dbg("Inserting a new fiber fid %d with active_pid %d and RIP %ld",f->fid,atomic_read(&(f->active_pid)),(long)f->pt_regs.ip);
@@ -213,7 +216,7 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     struct fiber   *src_f;
     struct pt_regs *cpu_regs;
     long src_fid,old;
-    unsigned long exectime;
+    //unsigned long exectime;
     
     struct fpu *prev_fpu;
     struct fpu *next_fpu;
@@ -222,8 +225,8 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
     log("kernelSwitchToFiber tgid:%d pid:%d fid:%d\n",tgid,pid,fid);
 
     // Get time spent in userspace
-    exectime = current->utime;
-    dbg("kernelSwitchToFiber [%d->%d] has run last fiber for %ld\n", tgid, pid, exectime);
+    //exectime = current->utime;
+    //dbg("kernelSwitchToFiber [%d->%d] has run last fiber for %lld\n", tgid, pid, current->utime);
 
 
     // Check if struct process exists otherwise return error
@@ -287,8 +290,11 @@ pid_t kernelSwitchToFiber(pid_t tgid, pid_t pid, pid_t fid){
 
 
     // Update metrics before releasing old fiber
-    src_f->total_running_time += exectime;
+    src_f->total_running_time += current->utime - src_f->last_activation_time;
     dbg("kernelSwitchToFiber [Fiber %ld] total execution time %ld\n", src_fid, src_f->total_running_time);
+    
+    // Start counting time for new fiber
+    dst_f->last_activation_time = current->utime;
 
     // Disengage old fiber
     atomic_set(&(src_f->active_pid),0);

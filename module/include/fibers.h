@@ -113,6 +113,7 @@ struct fiber{
                                         // are not thread-specific
 
     unsigned long   total_running_time;
+    unsigned long   last_activation_time;
 
     void * entry_point;
 
