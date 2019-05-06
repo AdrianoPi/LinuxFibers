@@ -70,12 +70,6 @@ struct fiber{
     atomic_t        active_pid;   // 0 if there is no active thread, ensure
                                   // mutual exclusion from SwitchToFiber
 
-    /* @TODO set active_pid atomically and avoid usage of this spinlock
-    spinlock_t      fiber_lock;   // Needed to ensure that no two threads
-                                  // try to run the same fiber.
-    unsigned long   flags;        // Needed to correctly restore interrupts
-    */
-
     struct pt_regs  pt_regs;      // These two fields will store the state
     struct fpu      fpu;          // of the CPU of this fiber
 
